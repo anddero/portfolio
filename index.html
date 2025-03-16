@@ -67,6 +67,8 @@
     }
 
     async function onImportLogInputChange(event) {
+        console.log("onImportLogInputChange");
+
         const file = event.target.files[0];
         if (!file) {
             setImportLogInputErrorMsg("No file selected.");
@@ -176,11 +178,13 @@
     }
 
     function onExportLogButtonClick() {
+        console.log("onExportLogButtonClick");
+
         const dataStr = JSON.stringify(gActivityList, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
 
-        const downloadElement = document.createElement("tmpPortfolioDownloadElement");
+        const downloadElement = document.createElement("a");
         downloadElement.href = url;
         downloadElement.download = "portfolio.json";
         document.body.appendChild(downloadElement);
