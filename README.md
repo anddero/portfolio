@@ -1,2 +1,2 @@
 # portfolio
-Simple single-file website for personal investment portfolio tracking.
+Simple single-file web app for personal investment portfolio tracking.
