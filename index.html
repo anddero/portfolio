@@ -21,7 +21,7 @@
 <main>
 
     <input type="file" id="importLogInput" name="Import">
-    <p id="importLogInputErrorMsg" style="color: red;"></p>
+    <p id="importLogInputMsg"></p>
 
     <h2>Log</h2>
     <table id="logTable">
@@ -68,8 +68,9 @@
 
     // Functions Section
 
-    function setImportLogInputErrorMsg(message) {
-        document.getElementById("importLogInputErrorMsg").innerText = message;
+    function setImportLogInputMsg(message, isError = true) {
+        document.getElementById("importLogInputMsg").innerText = message;
+        document.getElementById("importLogInputMsg").style = `color: ${isError ? "red" : "green"};`;
     }
 
     // Omit "async" as we must explicitly return "Promise" here anyway due to FileReader, which is not promise-based. Function still await-able.
@@ -97,17 +98,17 @@
 
         const file = event.target.files[0];
         if (!file) {
-            setImportLogInputErrorMsg("No file selected.");
+            setImportLogInputMsg("No file selected.");
             return;
         }
 
         try {
             gActivityList = await readJsonFile(file);
             await updateLogTable(gActivityList);
-            setImportLogInputErrorMsg("All good.");
+            setImportLogInputMsg("All good.", false);
         } catch (error) {
             console.error(error);
-            setImportLogInputErrorMsg(error.message);
+            setImportLogInputMsg(error.message);
         }
     }
 
@@ -116,7 +117,7 @@
             throw new Error(`Item is not a valid JSON object.`);
         }
 
-        for (let key in item.keys) {
+        for (let key of Object.getOwnPropertyNames(item)) {
             if (!ALL_POSSIBLE_JSON_FIELDS.includes(key)) {
                 throw new Error(`Unhandled property: "${key}"`)
             }
