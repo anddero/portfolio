@@ -33,6 +33,32 @@
 
 <!-- JavaScript Section -->
 <script>
+    // Constants
+    const ALL_POSSIBLE_JSON_FIELDS = [
+        "date",
+        "type",
+        "platform",
+        "fromPlatform",
+        "toPlatform",
+        "assetType",
+        "assetName",
+        "currency",
+        "fromCurrency",
+        "toCurrency",
+        "amount",
+        "fromAmount",
+        "toAmount",
+        "fromToCoefficient",
+        "value",
+        "grossValue",
+        "netValue",
+        "taxValue",
+        "unitPrice",
+        "totalValue",
+        "fee",
+        "notes"
+    ];
+
     // Event bindings
     document.getElementById('importLogInput').addEventListener('change', onImportLogInputChange);
     document.getElementById('exportLogButton').addEventListener('click', onExportLogButtonClick);
@@ -90,28 +116,11 @@
             throw new Error(`Item is not a valid JSON object.`);
         }
 
-        const {date, type, platform, assetType, assetName, currency, amount, unitPrice, totalValue, fee,
-            income, convertedFrom, exchangeRate, notes, ...extraFields} = item;
-
-        if (!date) throw new Error("Missing date");
-        if (!type) throw new Error("Missing type");
-        if (!platform) throw new Error("Missing platform");
-        if (!assetType) throw new Error("Missing assetType");
-        if (!assetName) throw new Error("Missing assetName");
-        if (!currency) throw new Error("Missing currency");
-        if (!amount) throw new Error("Missing amount");
-        if (!unitPrice) throw new Error("Missing unitPrice");
-        if (!totalValue) throw new Error("Missing totalValue");
-        if (!fee) throw new Error("Missing fee");
-        if (!income) throw new Error("Missing income");
-        if (!convertedFrom) throw new Error("Missing convertedFrom");
-        if (!exchangeRate) throw new Error("Missing exchangeRate");
-        if (!notes) throw new Error("Missing notes");
-
-        if (Object.keys(extraFields).length > 0) {
-            throw new Error(`Unhandled fields: ${Object.keys(extraFields).join(", ")}`);
+        for (let key in item.keys) {
+            if (!ALL_POSSIBLE_JSON_FIELDS.includes(key)) {
+                throw new Error(`Unhandled property: "${key}"`)
+            }
         }
-
     }
 
     async function updateLogTable(activityFileJson) {
@@ -122,20 +131,7 @@
         logTable.innerHTML = `
         <thead>
         <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Platform</th>
-            <th>Asset Type</th>
-            <th>Asset Name</th>
-            <th>Currency</th>
-            <th>Amount</th>
-            <th>Unit Price</th>
-            <th>Total Value</th>
-            <th>Fee</th>
-            <th>Income</th>
-            <th>Converted From</th>
-            <th>Exchange Rate</th>
-            <th>Notes</th>
+            ${ALL_POSSIBLE_JSON_FIELDS.map(field => `<th>${field}</th>`).join('')}
         </tr>
         </thead>
         <tbody>
@@ -146,32 +142,25 @@
         for (const item of activityFileJson) {
             const row = document.createElement("tr");
 
+            let validationErrorMsg = '';
             try {
-                await validateActivity(item); // Await the validation
-                row.innerHTML = `
-                <td>${item.date}</td>
-                <td>${item.type}</td>
-                <td>${item.platform}</td>
-                <td>${item.assetType}</td>
-                <td>${item.assetName}</td>
-                <td>${item.currency}</td>
-                <td>${item.amount}</td>
-                <td>${item.unitPrice}</td>
-                <td>${item.totalValue}</td>
-                <td>${item.fee}</td>
-                <td>${item.income}</td>
-                <td>${item.convertedFrom}</td>
-                <td>${item.exchangeRate}</td>
-                <td>${item.notes}</td>
-            `;
+                await validateActivity(item);
             } catch (error) {
                 ++errorCount;
-                row.innerHTML = `
-                <td colspan="14" style="color: red;">Error: ${error.message}</td>
-            `;
+                validationErrorMsg = error.message;
             }
 
+            row.innerHTML = ALL_POSSIBLE_JSON_FIELDS.map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`).join('');
+
             logTable.getElementsByTagName("tbody")[0].appendChild(row);
+
+            if (validationErrorMsg !== '') {
+                const errorRow = document.createElement("tr");
+                errorRow.innerHTML = `
+                    <td colspan="${ALL_POSSIBLE_JSON_FIELDS.length}" style="color: red;">Above record contains the following error(s): ${validationErrorMsg}</td>
+                `
+                logTable.getElementsByTagName("tbody")[0].appendChild(errorRow);
+            }
         }
 
         if (errorCount > 0) throw new Error(`Problems with uploaded document, ${errorCount} errors occurred. See table below.`);
