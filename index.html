@@ -33,7 +33,9 @@
 
 <!-- JavaScript Section -->
 <script>
-    // Constants
+
+    // CONSTANTS
+
     const ALL_POSSIBLE_JSON_FIELDS = [
         "date",
         "action",
@@ -58,21 +60,137 @@
         "notes"
     ];
 
-    // Event bindings
+    const ALL_POSSIBLE_ACTIONS = [
+        "Check",
+        "NewPlatform",
+        "Buy",
+        "Deposit",
+        "Dividend",
+        "CurrencyConversion",
+        "PublicToPrivateShareConversion",
+        "Other",
+        "Transfer",
+        "Sell",
+        "Interest"
+    ];
+
+    // STATE
+
+    let gActivityList = []; // Raw activity JSON
+    let gActivityErrorMap = new Map(); // Errors in the activity JSON, where key is activity index and value is error message
+    let gPortfolioState = {}; // Portfolio structured state such as overview, individual asset summaries, etc
+
+    // EVENT BINDINGS
+
     document.getElementById('importLogInput').addEventListener('change', onImportLogInputChange);
     document.getElementById('exportLogButton').addEventListener('click', onExportLogButtonClick);
 
-    // Single source of truth across the app for underlying activity data
-    let gActivityList = [];
+    // EVENT HANDLERS
 
-    // Functions Section
-
-    function setImportLogInputMsg(message, isError = true) {
+    function setImportLogInputMsg(message, isError) {
         document.getElementById("importLogInputMsg").innerText = message;
         document.getElementById("importLogInputMsg").style = `color: ${isError ? "red" : "green"};`;
     }
 
-    // Omit "async" as we must explicitly return "Promise" here anyway due to FileReader, which is not promise-based. Function still await-able.
+    // Reset all global state, process and validate the given file, set the global state and update DOM
+    async function onImportLogInputChange(event) {
+        console.log("onImportLogInputChange");
+
+        // New state, initially cleared
+        let activityList = [];
+        let activityErrorMap = new Map();
+        let portfolioState = {};
+        let msg = { "text": "Something went wrong.", "isError": true };
+
+        // Call this on every return point to make sure global state and DOM gets updated with new state
+        let updateDom = () => {
+            gActivityList = activityList;
+            gActivityErrorMap = activityErrorMap;
+            gPortfolioState = portfolioState;
+            setImportLogInputMsg(msg.text, msg.isError);
+            reloadLogTable();
+        };
+
+        const file = event.target.files[0];
+        if (!file) {
+            msg.text = "No file selected.";
+            msg.isError = true;
+            return updateDom();
+        }
+
+        try {
+            activityList = await readJsonFile(file);
+            [portfolioState, activityErrorMap] = await processActivityList(activityList);
+            if (activityErrorMap.size > 0)
+            {
+                msg.text = `Problems with uploaded document, ${activityErrorMap.size} errors occurred. See table below.`
+                msg.isError = true;
+            }
+            else
+            {
+                msg.text = "All good.";
+                msg.isError = false;
+            }
+        } catch (error) {
+            console.error(error);
+            msg.text = error.message;
+            msg.isError = true;
+        }
+
+        return updateDom();
+    }
+
+    // Reload the activity table view, based on global activity list and error map
+    function reloadLogTable() {
+        const logTable = document.getElementById("logTable");
+        logTable.innerHTML = `
+        <thead>
+        <tr>
+            ${ALL_POSSIBLE_JSON_FIELDS.map(field => `<th>${field}</th>`).join('')}
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+        `;
+
+        for (const [i, item] of gActivityList.entries()) {
+            const row = document.createElement("tr");
+            row.innerHTML = ALL_POSSIBLE_JSON_FIELDS
+                .map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`)
+                .join('');
+            logTable.getElementsByTagName("tbody")[0].appendChild(row);
+
+            if (gActivityErrorMap.has(i)) {
+                const errorRow = document.createElement("tr");
+                errorRow.innerHTML = `
+                    <td colspan="${ALL_POSSIBLE_JSON_FIELDS.length}"style="color: red;">
+                        Above record contains the following error(s): ${gActivityErrorMap.get(i)}
+                    </td>
+                `
+                logTable.getElementsByTagName("tbody")[0].appendChild(errorRow);
+            }
+        }
+    }
+
+    function onExportLogButtonClick() {
+        console.log("onExportLogButtonClick");
+
+        const dataStr = JSON.stringify(gActivityList, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const downloadElement = document.createElement("a");
+        downloadElement.href = url;
+        downloadElement.download = "portfolio.json";
+        document.body.appendChild(downloadElement);
+        downloadElement.click();
+        document.body.removeChild(downloadElement);
+    }
+
+    // FUNCTIONS WITHOUT SIDE EFFECTS
+
+    // Omit "async" as we must explicitly return "Promise" here anyway due to FileReader,
+    // which is not promise-based. Function is still await-able.
     function readJsonFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -92,94 +210,49 @@
         });
     }
 
-    async function onImportLogInputChange(event) {
-        console.log("onImportLogInputChange");
-
-        const file = event.target.files[0];
-        if (!file) {
-            setImportLogInputMsg("No file selected.");
-            return;
+    async function processActivityList(activityFileJson) {
+        if (!Array.isArray(activityFileJson)) {
+            throw new Error("Top-level JSON must be an array.");
         }
 
-        try {
-            gActivityList = await readJsonFile(file);
-            await updateLogTable(gActivityList);
-            setImportLogInputMsg("All good.", false);
-        } catch (error) {
-            console.error(error);
-            setImportLogInputMsg(error.message);
+        if (activityFileJson.length === 0) {
+            throw new Error("Activity JSON is empty.");
         }
+
+        let portfolioState = {};
+        let activityErrorMap = new Map();
+
+        for (const [i, item] of activityFileJson.entries()) {
+            try {
+                await processAction(item, portfolioState);
+            } catch (error) {
+                activityErrorMap.set(i, error.message);
+            }
+        }
+
+        return [portfolioState, activityErrorMap];
     }
 
-    async function validateActivity(item) {
+    async function processAction(item, portfolioState) {
         if (typeof item !== "object" || item === null) {
             throw new Error(`Item is not a valid JSON object.`);
         }
 
         for (let key of Object.getOwnPropertyNames(item)) {
             if (!ALL_POSSIBLE_JSON_FIELDS.includes(key)) {
-                throw new Error(`Unhandled property: "${key}"`)
-            }
-        }
-    }
-
-    async function updateLogTable(activityFileJson) {
-        if (!Array.isArray(activityFileJson)) {
-            throw new Error("Top-level JSON must be an array.");
-        }
-        const logTable = document.getElementById("logTable");
-        logTable.innerHTML = `
-        <thead>
-        <tr>
-            ${ALL_POSSIBLE_JSON_FIELDS.map(field => `<th>${field}</th>`).join('')}
-        </tr>
-        </thead>
-        <tbody>
-        </tbody>
-        `;
-
-        let errorCount = 0;
-        for (const item of activityFileJson) {
-            const row = document.createElement("tr");
-
-            let validationErrorMsg = '';
-            try {
-                await validateActivity(item);
-            } catch (error) {
-                ++errorCount;
-                validationErrorMsg = error.message;
-            }
-
-            row.innerHTML = ALL_POSSIBLE_JSON_FIELDS.map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`).join('');
-
-            logTable.getElementsByTagName("tbody")[0].appendChild(row);
-
-            if (validationErrorMsg !== '') {
-                const errorRow = document.createElement("tr");
-                errorRow.innerHTML = `
-                    <td colspan="${ALL_POSSIBLE_JSON_FIELDS.length}" style="color: red;">Above record contains the following error(s): ${validationErrorMsg}</td>
-                `
-                logTable.getElementsByTagName("tbody")[0].appendChild(errorRow);
+                throw new Error(`Unhandled property: "${key}"`);
             }
         }
 
-        if (errorCount > 0) throw new Error(`Problems with uploaded document, ${errorCount} errors occurred. See table below.`);
+        // TODO Validate date, which must be present on every action
+
+        if (!ALL_POSSIBLE_ACTIONS.includes(item.action)) {
+            throw new Error(`Unhandled action: "${item.action}"`);
+        }
+
+        // TODO Implement per-action-type processing here.
     }
 
-    function onExportLogButtonClick() {
-        console.log("onExportLogButtonClick");
-
-        const dataStr = JSON.stringify(gActivityList, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-
-        const downloadElement = document.createElement("a");
-        downloadElement.href = url;
-        downloadElement.download = "portfolio.json";
-        document.body.appendChild(downloadElement);
-        downloadElement.click();
-        document.body.removeChild(downloadElement);
-    }
 </script>
 
 </body>
