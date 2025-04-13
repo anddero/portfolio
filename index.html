@@ -244,13 +244,14 @@
             }
         }
 
-        // TODO Validate date, which must be present on every action
+        // TODO Validate date existence and format which must be present on every action.
+        // TODO Validate that the date is greater or equal to the previous action's date (can keep that in state). JSON file should have correct order of activities.
 
         if (!ALL_POSSIBLE_ACTIONS.includes(item.action)) {
             throw new Error(`Unhandled action: "${item.action}"`);
         }
 
-        // TODO Implement per-action-type processing here.
+        // TODO Implement per-action-type processing here. Throw on any errors, otherwise update portfolioState.
     }
 
 </script>
