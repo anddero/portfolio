@@ -32,6 +32,9 @@
 </main>
 
 <!-- JavaScript Section -->
+
+<script src="https://cdn.jsdelivr.net/npm/decimal.js@10.4.3/decimal.min.js"></script>
+
 <script>
 
     // CONSTANTS
@@ -475,6 +478,25 @@
     }
 
     // UTILS
+
+    /*
+     * Parse a fractional amount string, e.g. "1.234", "0.5", "-3,0", "24", etc.
+     * Return a Decimal object representing the fractional amount.
+     */
+    async function parseFractionalAmount(countStr, fieldName) {
+        // Validate that the value is given
+        if (countStr === undefined || countStr === null || typeof countStr !== "string" || countStr === "") {
+            throw new Error(`Field "${fieldName}" missing or empty`);
+        }
+        // Validate that the value is a valid fractional amount string
+        const fractionalAmountRegex = /^-?\d+([.,]\d+)?$/;
+        if (!fractionalAmountRegex.test(countStr)) {
+            throw new Error(`Field "${fieldName}" value "${countStr}" invalid, expected a fractional amount`);
+        }
+        // Convert the string to a Decimal object
+        const normalizedStr = countStr.replace(',', '.'); // Normalize comma to dot
+        return new Decimal(normalizedStr);
+    }
 
     async function parseCount(countStr, fieldName) {
         // Validate that the value is given
