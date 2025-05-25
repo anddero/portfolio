@@ -210,6 +210,13 @@
         });
     }
 
+    /*
+     * Process the given activity log JSON, which is expected to be an array of action items.
+     * Each item is processed sequentially.
+     * Return a tuple of the calculated portfolio state and a map of errors.
+     * In the map of errors, the key is the index of the activity item and the value is the error message.
+     * If no errors occurred, the map will be empty.
+     */
     async function processActivityList(activityFileJson) {
         if (!Array.isArray(activityFileJson)) {
             throw new Error("Top-level JSON must be an array.");
@@ -219,7 +226,9 @@
             throw new Error("Activity JSON is empty.");
         }
 
-        let portfolioState = {};
+        let portfolioState = {
+            platforms: new Map() // Map of platform objects by the platform name
+        };
         let activityErrorMap = new Map();
 
         for (const [i, item] of activityFileJson.entries()) {
@@ -255,16 +264,53 @@
             throw new Error(`Invalid "date" with value "${item.date}": ${error.message}`);
         }
 
+        // Validate date order
         if (portfolioState.latestDate && date < portfolioState.latestDate) {
             throw new Error(`Date is earlier than the previous action's date.`);
         }
         portfolioState.latestDate = date;
 
+        // Validate action type
         if (!ALL_POSSIBLE_ACTIONS.includes(item.action)) {
             throw new Error(`Unhandled action: "${item.action}"`);
         }
 
-        // TODO Implement per-action-type processing here. Throw on any errors, otherwise update portfolioState.
+        // Process the action with a dedicated function
+        switch (item.action) {
+            case "NewPlatform":
+                await processActionNewPlatform(item, portfolioState);
+                break;
+            default:
+                throw new Error(`Processing for "${item.action}" is not implemented`);
+        }
+    }
+
+    /*
+     * Validate the "NewPlatform" action of introducing a new investment platform to the portfolio.
+     */
+    async function processActionNewPlatform(item, portfolioState) {
+        // Validate that the platform does not already exist
+        if (portfolioState.platforms.has(item.platform)) {
+            throw new Error(`Platform "${item.platform}" already exists`);
+        }
+        // Validate that the platform name is not empty
+        if (!item.platform || item.platform.trim() === "") {
+            throw new Error(`Platform name cannot be empty`);
+        }
+        // Validate that the platform name consists of alphanumeric characters
+        const platformNameRegex = /^[a-zA-Z0-9]+$/;
+        if (!platformNameRegex.test(item.platform)) {
+            throw new Error(`Platform name "${item.platform}" must consist of alphanumeric characters only (a-z, A-Z, 0-9)`);
+        }
+        // Validate that the platform name is not too long
+        if (item.platform.length > 50) {
+            throw new Error(`Platform name "${item.platform}" is too long, maximum allowed length is 50 characters`);
+        }
+        // Add the platform to the portfolio
+        portfolioState.platforms.set(item.platform, {
+            name: item.platform,
+            assets: new Map(), // Map of asset objects by the asset code
+        });
     }
 
     // UTILS
