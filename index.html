@@ -233,6 +233,9 @@
         return [portfolioState, activityErrorMap];
     }
 
+    /*
+     * Process a single action item from the activity log, updating the given portfolio state.
+     */
     async function processAction(item, portfolioState) {
         if (typeof item !== "object" || item === null) {
             throw new Error(`Item is not a valid JSON object.`);
@@ -244,7 +247,13 @@
             }
         }
 
-        // TODO Validate date existence and format which must be present on every action. Each action should have a "date" field with value "DD.MM.YYYY" and the date must be a valid date.
+        // Validate date existence and format
+        try {
+            const date = await getDateFromStr(item.date);
+        } catch (error) {
+            throw new Error(`Invalid "date" with value "${item.date}": ${error.message}`);
+        }
+
         // TODO Validate that the date is greater or equal to the previous action's date (can keep that in state). JSON file should have correct order of activities.
 
         if (!ALL_POSSIBLE_ACTIONS.includes(item.action)) {
@@ -252,6 +261,48 @@
         }
 
         // TODO Implement per-action-type processing here. Throw on any errors, otherwise update portfolioState.
+    }
+
+    // UTILS
+
+    // Validate that the date string in format "DD.MM.YYYY" has correct format and is a valid date.
+    // Return a Date object if valid, otherwise throw an error.
+    async function getDateFromStr(dateStr) {
+        if (!dateStr) {
+            throw new Error("String is empty or undefined");
+        }
+
+        // Check date format (DD.MM.YYYY)
+        const dateRegex = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+        const dateMatch = dateStr.match(dateRegex);
+        if (!dateMatch) {
+            throw new Error(`Expected format DD.MM.YYYY`);
+        }
+
+        // Validate that the date is a valid date
+        const day = parseInt(dateMatch[1], 10);
+        const month = parseInt(dateMatch[2], 10);
+        const year = parseInt(dateMatch[3], 10);
+
+        if (day < 1 || day > 31) {
+            throw new Error(`Invalid day ${day}`);
+        }
+
+        if (month < 1 || month > 12) {
+            throw new Error(`Invalid month ${month}`);
+        }
+
+        const dateObj = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
+
+        // Check if the date is valid (e.g., not 31.02.2023)
+        if (dateObj.getDate() !== day ||
+            dateObj.getMonth() + 1 !== month ||
+            dateObj.getFullYear() !== year) {
+            throw new Error(`The date does not exist in calendar`);
+        }
+
+        console.log(`Successfully parsed date ${dateStr} to ${dateObj.toISOString()}`);
+        return dateObj;
     }
 
 </script>
