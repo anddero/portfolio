@@ -248,13 +248,17 @@
         }
 
         // Validate date existence and format
+        let date = undefined;
         try {
-            const date = await getDateFromStr(item.date);
+            date = await getDateFromStr(item.date);
         } catch (error) {
             throw new Error(`Invalid "date" with value "${item.date}": ${error.message}`);
         }
 
-        // TODO Validate that the date is greater or equal to the previous action's date (can keep that in state). JSON file should have correct order of activities.
+        if (portfolioState.latestDate && date < portfolioState.latestDate) {
+            throw new Error(`Date is earlier than the previous action's date.`);
+        }
+        portfolioState.latestDate = date;
 
         if (!ALL_POSSIBLE_ACTIONS.includes(item.action)) {
             throw new Error(`Unhandled action: "${item.action}"`);
