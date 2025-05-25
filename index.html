@@ -244,7 +244,7 @@
             }
         }
 
-        // TODO Validate date existence and format which must be present on every action.
+        // TODO Validate date existence and format which must be present on every action. Each action should have a "date" field with value "DD.MM.YYYY" and the date must be a valid date.
         // TODO Validate that the date is greater or equal to the previous action's date (can keep that in state). JSON file should have correct order of activities.
 
         if (!ALL_POSSIBLE_ACTIONS.includes(item.action)) {
