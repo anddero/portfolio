@@ -303,8 +303,61 @@
             case "Dividend":
                 await processActionDividend(item, portfolioState);
                 break;
+            case "CurrencyConversion":
+                await processActionCurrencyConversion(item, portfolioState);
+                break;
             default:
                 throw new Error(`Processing for "${item.action}" is not implemented`);
+        }
+    }
+
+    async function processActionCurrencyConversion(item, portfolioState) {
+        let warnings = [];
+
+        // Validate that the platform exists
+        if (!portfolioState.platforms.has(item.platform)) {
+            throw new Error(`Platform "${item.platform}" does not exist`);
+        }
+        // Validate that the asset type is Cash
+        if (item.assetType !== "Cash") {
+            throw new Error(`Asset type "${item.assetType}" is not supported for "CurrencyConversion" action`);
+        }
+        // Validate the from currency
+        await validateInputCurrency(item.fromCurrency);
+        // Validate the to currency
+        await validateInputCurrency(item.toCurrency);
+        // Validate the from value
+        const fromValueDecimal = await parseAmountToDecimal(item.fromValue, "fromValue");
+        // Validate that the from value is positive
+        if (fromValueDecimal.lessThanOrEqualTo(0)) {
+            throw new Error(`From value "${item.fromValue}" is not a positive amount`);
+        }
+        // Validate the to value
+        const toValueDecimal = await parseAmountToDecimal(item.toValue, "toValue");
+        // Validate that the to value is positive
+        if (toValueDecimal.lessThanOrEqualTo(0)) {
+            throw new Error(`To value "${item.toValue}" is not a positive amount`);
+        }
+        // Validate the from-to coefficient
+        const fromToCoefficientDecimal = new Decimal(item.fromToCoefficient);
+        if (fromToCoefficientDecimal.lessThanOrEqualTo(0)) {
+            throw new Error(`From-to coefficient "${item.fromToCoefficient}" must be a positive number`);
+        }
+        // Check that the conversion makes sense
+        const expectedToValue = fromValueDecimal.times(fromToCoefficientDecimal);
+        if (!toValueDecimal.equals(expectedToValue)) {
+            warnings.push(`To value ${toValueDecimal} does not match the product of from value ${fromValueDecimal} and from-to coefficient ${fromToCoefficientDecimal}, expected ${expectedToValue}.`);
+        }
+
+        // Update the cash amounts on the platform
+        const platform = portfolioState.platforms.get(item.platform);
+
+        updateCash(platform, item.fromCurrency, fromValueDecimal.negated());
+        updateCash(platform, item.toCurrency, toValueDecimal);
+
+        // If there are warnings, still throw
+        if (warnings.length > 0) {
+            throw new Error(`You have ${warnings.length} warning(s): ${warnings.join(" ")}`);
         }
     }
 
