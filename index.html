@@ -306,8 +306,57 @@
             case "CurrencyConversion":
                 await processActionCurrencyConversion(item, portfolioState);
                 break;
+            case "Transfer":
+                await processActionTransfer(item, portfolioState);
+                break;
             default:
                 throw new Error(`Processing for "${item.action}" is not implemented`);
+        }
+    }
+
+    async function processActionTransfer(item, portfolioState) {
+        let warnings = [];
+
+        // Validate the from platform existence
+        if (!portfolioState.platforms.has(item.fromPlatform)) {
+            throw new Error(`From platform "${item.fromPlatform}" does not exist`);
+        }
+        // Validate the to platform existence
+        if (!portfolioState.platforms.has(item.toPlatform)) {
+            throw new Error(`To platform "${item.toPlatform}" does not exist`);
+        }
+        // Validate the asset type
+        if (item.assetType !== "Cash") {
+            throw new Error(`Asset type "${item.assetType}" is not supported for "Transfer" action`);
+        }
+        // Validate the currency
+        await validateInputCurrency(item.currency);
+        // Validate the value
+        const totalValueDecimal = await parseAmountToDecimal(item.totalValue, "totalValue");
+        // Validate that the transferred amount is positive
+        if (totalValueDecimal.lessThanOrEqualTo(0)) {
+            throw new Error(`Total value "${item.totalValue}" is not a positive amount`);
+        }
+        // Validate the fee value
+        const feeValueDecimal = await parseAmountToDecimal(item.feeValue, "feeValue");
+        // Validate that the fee value is non-negative
+        if (feeValueDecimal.lessThan(0)) {
+            throw new Error(`Fee value "${item.feeValue}" is not a non-negative amount`);
+        }
+        // Update the cash amount on the from platform
+        const fromPlatform = portfolioState.platforms.get(item.fromPlatform);
+        updateCash(fromPlatform, item.currency, totalValueDecimal.negated().plus(feeValueDecimal));
+        // Update the cash amount on the to platform
+        const toPlatform = portfolioState.platforms.get(item.toPlatform);
+        updateCash(toPlatform, item.currency, totalValueDecimal);
+        // Validate that the from platform hasn't gone negative
+        const fromCashAmountDecimal = fromPlatform.cash.get(item.currency);
+        if (fromCashAmountDecimal.lessThan(0)) {
+            warnings.push(`From platform "${item.fromPlatform}" has gone negative in currency "${item.currency}", current amount is ${fromCashAmountDecimal}.`);
+        }
+        // If there are warnings, still throw
+        if (warnings.length > 0) {
+            throw new Error(`You have ${warnings.length} warning(s): ${warnings.join(" ")}`);
         }
     }
 
@@ -354,6 +403,12 @@
 
         updateCash(platform, item.fromCurrency, fromValueDecimal.negated());
         updateCash(platform, item.toCurrency, toValueDecimal);
+
+        // Validate that the from currency amount hasn't gone negative
+        const fromCashAmountDecimal = platform.cash.get(item.fromCurrency);
+        if (fromCashAmountDecimal.lessThan(0)) {
+            warnings.push(`From platform "${item.platform}" has gone negative in currency "${item.fromCurrency}", current amount is ${fromCashAmountDecimal}.`);
+        }
 
         // If there are warnings, still throw
         if (warnings.length > 0) {
@@ -475,6 +530,13 @@
         updateCash(platform, item.currency, totalValueDecimal.negated());
         // Add the shares to the platform
         updateStock(platform, item.assetCode, shareCount);
+
+        // Validate that the platform hasn't gone negative
+        const cashAmountDecimal = platform.cash.get(item.currency);
+        if (cashAmountDecimal.lessThan(0)) {
+            warnings.push(`Platform "${item.platform}" has gone negative in currency "${item.currency}", current amount is ${cashAmountDecimal}.`);
+        }
+
         // If there are warnings, still throw
         if (warnings.length > 0) {
             throw new Error(`You have ${warnings.length} warning(s): ${warnings.join(" ")}`);
@@ -502,6 +564,13 @@
         updateCash(platform, item.currency, totalValueDecimal.negated());
         // Add the index fund cash to the platform
         updateIndexFund(platform, item.assetCode, totalValueDecimal);
+
+        // Validate that the platform hasn't gone negative
+        const cashAmountDecimal = platform.cash.get(item.currency);
+        if (cashAmountDecimal.lessThan(0)) {
+            warnings.push(`Platform "${item.platform}" has gone negative in currency "${item.currency}", current amount is ${cashAmountDecimal}.`);
+        }
+
         // If there are warnings, still throw
         if (warnings.length > 0) {
             throw new Error(`You have ${warnings.length} warning(s): ${warnings.join(" ")}`);
