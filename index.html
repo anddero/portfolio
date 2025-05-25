@@ -342,25 +342,25 @@
         // Validate the currency
         await validateInputCurrency(item.currency);
         // Validate the unit value
-        const unitValueCents = await parseAmountToCents(item.unitValue, "unitValue");
+        const unitValueDecimal = await parseAmountToDecimal(item.unitValue, "unitValue");
         // Validate that the unit value is positive
-        if (unitValueCents <= 0) {
+        if (unitValueDecimal.lessThanOrEqualTo(0)) {
             warnings.push(`Unit value "${item.unitValue}" is not a positive amount.`);
         }
         // Validate the total value
-        const totalValueCents = await parseAmountToCents(item.totalValue, "totalValue");
+        const totalValueDecimal = await parseAmountToDecimal(item.totalValue, "totalValue");
         // Validate that the total value is positive
-        if (totalValueCents <= 0) {
+        if (totalValueDecimal.lessThanOrEqualTo(0)) {
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Validate the total value against unit value and share count
-        const expectedTotalValueCents = shareCount * unitValueCents;
-        if (totalValueCents !== expectedTotalValueCents) {
-            warnings.push(`Total value ${centsToAmountStr(totalValueCents)} does not match the product of share count and unit value, expected ${centsToAmountStr(expectedTotalValueCents)}.`);
+        const expectedTotalValueDecimal = unitValueDecimal.times(shareCount);
+        if (!totalValueDecimal.equals(expectedTotalValueDecimal)) {
+            warnings.push(`Total value ${totalValueDecimal} does not match the product of share count and unit value, expected ${expectedTotalValueDecimal}.`);
         }
         // Subtract the spent cash from the platform
         const platform = portfolioState.platforms.get(item.platform);
-        updateCash(platform, item.currency, -totalValueCents);
+        updateCash(platform, item.currency, totalValueDecimal.negated());
         // Add the shares to the platform
         updateStock(platform, item.assetCode, shareCount);
         // If there are warnings, still throw
@@ -384,14 +384,14 @@
         // Validate the currency
         await validateInputCurrency(item.currency);
         // Validate the value
-        const totalValueCents = await parseAmountToCents(item.totalValue, "totalValue");
+        const totalValueDecimal = await parseAmountToDecimal(item.totalValue, "totalValue");
         // Validate that the deposited amount is positive
-        if (totalValueCents <= 0) {
+        if (totalValueDecimal.lessThanOrEqualTo(0)) {
             throw new Error(`Total value "${item.totalValue}" is not a positive amount`);
         }
         // Update the cash amount on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        updateCash(platform, item.currency, totalValueCents);
+        updateCash(platform, item.currency, totalValueDecimal);
     }
 
     /*
@@ -422,15 +422,15 @@
     async function processActionCheckCash(item, portfolioState) {
         await validateInputCurrency(item.currency);
 
-        const totalValueCents = await parseAmountToCents(item.totalValue, "totalValue");
+        const totalValueDecimal = await parseAmountToDecimal(item.totalValue, "totalValue");
 
         // Check the cash amount on the platform. If the currency is not in the cash map, expect value 0
         const platform = portfolioState.platforms.get(item.platform);
-        const cashAmountCents = platform.cash.get(item.currency) || 0;
+        const cashAmountDecimal = platform.cash.get(item.currency) || new Decimal(0);
 
         // Validate the amount
-        if (cashAmountCents !== totalValueCents) {
-            throw new Error(`Current cash amount for platform "${item.platform}" and currency "${item.currency}" is ${centsToAmountStr(cashAmountCents)} but expected ${item.totalValue}`);
+        if (!cashAmountDecimal.equals(totalValueDecimal)) {
+            throw new Error(`Current cash amount for platform "${item.platform}" and currency "${item.currency}" is ${cashAmountDecimal} but expected ${item.totalValue}`);
         }
     }
 
@@ -458,16 +458,16 @@
         // Add the platform to the portfolio
         portfolioState.platforms.set(item.platform, {
             name: item.platform,
-            cash: new Map(), // Map of cash amounts by the currency code
+            cash: new Map(), // Map of cash amount Decimal objects by the currency code
             stock: new Map(), // Map of stock objects by the stock code
         });
     }
 
-    function updateCash(platform, currency, updateCents) {
+    function updateCash(platform, currency, updateDecimal) {
         if (!platform.cash.has(currency)) {
-            platform.cash.set(currency, 0);
+            platform.cash.set(currency, new Decimal(0));
         }
-        platform.cash.set(currency, platform.cash.get(currency) + updateCents);
+        platform.cash.set(currency, platform.cash.get(currency).plus(updateDecimal));
     }
 
     function updateStock(platform, assetCode, shareCount) {
@@ -480,22 +480,21 @@
     // UTILS
 
     /*
-     * Parse a fractional amount string, e.g. "1.234", "0.5", "-3,0", "24", etc.
-     * Return a Decimal object representing the fractional amount.
+     * Parse a decimal amount string to a Decimal object.
+     * The string should be in format "1234.56", "-0.09", "0,00", "1,2", "49", etc.
      */
-    async function parseFractionalAmount(countStr, fieldName) {
+    async function parseAmountToDecimal(amountStr, fieldName) {
         // Validate that the value is given
-        if (countStr === undefined || countStr === null || typeof countStr !== "string" || countStr === "") {
+        if (amountStr === undefined || amountStr === null || typeof amountStr !== "string" || amountStr === "") {
             throw new Error(`Field "${fieldName}" missing or empty`);
         }
-        // Validate that the value is a valid fractional amount string
-        const fractionalAmountRegex = /^-?\d+([.,]\d+)?$/;
-        if (!fractionalAmountRegex.test(countStr)) {
-            throw new Error(`Field "${fieldName}" value "${countStr}" invalid, expected a fractional amount`);
+        // Validate that the value is a valid decimal amount string
+        const decimalAmountRegex = /^-?\d+([.,]\d+)?$/;
+        if (!decimalAmountRegex.test(amountStr)) {
+            throw new Error(`Field "${fieldName}" value "${amountStr}" invalid, expected a decimal amount`);
         }
         // Convert the string to a Decimal object
-        const normalizedStr = countStr.replace(',', '.'); // Normalize comma to dot
-        return new Decimal(normalizedStr);
+        return new Decimal(amountStr.replace(',', '.')); // Normalize comma to dot
     }
 
     async function parseCount(countStr, fieldName) {
@@ -510,38 +509,6 @@
         }
         // Convert the string to an integer
         return parseInt(countStr, 10);
-    }
-
-    async function parseAmountToCents(amountStr, fieldName) {
-        // Validate that the value is given
-        if (amountStr === undefined || amountStr === null || typeof amountStr !== "string" || amountStr === "") {
-            throw new Error(`Field "${fieldName}" missing or empty`);
-        }
-        // Validate that the value is a valid currency amount string in format, examples "1234.56", "-0,09", "0.00"
-        const currencyValueRegex = /^-?\d+[.,]\d{2}$/;
-        if (!currencyValueRegex.test(amountStr)) {
-            throw new Error(`Field "${fieldName}" value "${amountStr}" invalid, expected format examples are "1234.56", "-0.09", "0.00"`);
-        }
-        // Convert the string to an integer representing cents
-        return parseInt(amountStr.replace(/[,.]/, ''), 10);
-    }
-
-    /*
-     * Convert an integer representing cents to a string representing the amount in format "1234.56".
-     */
-    function centsToAmountStr(cents) {
-        const isNegative = cents < 0;
-        let str = Math.abs(cents).toString();
-
-        // Ensure at least three digits
-        if (str.length < 3) {
-            str = "0".repeat(3 - str.length) + str;
-        }
-
-        // Insert the decimal point before the last two digits
-        str = str.slice(0, -2) + "." + str.slice(-2);
-
-        return (isNegative ? "-" : "") + str;
     }
 
     async function validateInputAssetCode(assetCode) {
