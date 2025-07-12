@@ -180,7 +180,7 @@
                 const errorRow = document.createElement("tr");
                 errorRow.innerHTML = `
                     <td colspan="${ALL_POSSIBLE_JSON_FIELDS.length}"style="color: red;">
-                        Above record contains the following error(s): ${gActivityErrorMap.get(i)}
+                        Applies to the above record: ${gActivityErrorMap.get(i)}
                     </td>
                 `
                 logTable.getElementsByTagName("tbody")[0].appendChild(errorRow);
