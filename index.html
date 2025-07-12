@@ -679,7 +679,7 @@
 
         // Validate the amount
         if (!cashAmountDecimal.equals(totalValueDecimal)) {
-            throw new Error(`Current cash amount for platform "${item.platform}" and currency "${item.currency}" is ${cashAmountDecimal} but expected ${item.totalValue}`);
+            warnings.push(`Current cash amount for platform "${item.platform}" and currency "${item.currency}" is ${cashAmountDecimal} but expected ${item.totalValue}`);
         }
 
         return warnings;
