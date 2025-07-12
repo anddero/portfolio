@@ -139,7 +139,7 @@
             if (activityErrorMap.size > 0)
             {
                 if (criticalErrorOccurred) {
-                    msg.text = `You have ${activityErrorMap.size} critical error(s), log processing incomplete and calculated data partial! See table below for the line where the issue occurred. Please fix the issue and reload the log.`;
+                    msg.text = `You have ${activityErrorMap.size} issue(s), where the last detected issue is a critical error. The log processing is incomplete and calculated data partial! See table below for the line where the issue occurred. Please fix the issue and reload the log.`;
                 } else {
                     msg.text = `You have ${activityErrorMap.size} warning(s). See table below for the lines where they occurred. The entire log has been processed and it is safe to continue if you choose to ignore the warnings.`
                 }
@@ -807,7 +807,7 @@
         // Validate the friendly asset name
         await validateInputAssetFriendlyName(item.friendlyName);
         // Validate that the friendly name does not already exist on the platform
-        if (platform.assetNames.values().includes(item.friendlyName)) {
+        if ([...platform.assetNames.values()].includes(item.friendlyName)) {
             throw new Error(`Friendly name "${item.friendlyName}" already exists on platform "${item.platform}"`);
         }
         // Add the asset code and friendly name to the platform
