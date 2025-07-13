@@ -77,7 +77,7 @@
         "PublicToPrivateShareConversion",
         "Other",
         "Transfer",
-        "NominalValueReduction",
+        "UnspecificAccountingIncomeAction",
         "Sell",
         "Interest"
     ];
@@ -328,8 +328,8 @@
                 return processActionCurrencyConversion(item, portfolioState);
             case "Transfer":
                 return processActionTransfer(item, portfolioState);
-            case "NominalValueReduction":
-                return processActionNominalValueReduction(item, portfolioState);
+            case "UnspecificAccountingIncomeAction":
+                return processActionUnspecificAccountingIncomeAction(item, portfolioState);
             case "PublicToPrivateShareConversion":
                 return processActionPublicToPrivateShareConversion(item, portfolioState);
             case "Interest":
@@ -348,7 +348,7 @@
         }
         // Validate that the asset type is supported
         if (item.assetType !== "Stock") {
-            throw new Error(`Asset type "${item.assetType}" is not supported for "NominalValueReduction" action`);
+            throw new Error(`Asset type "${item.assetType}" is not supported for "PublicToPrivateShareConversion" action`); // TODO Mark stock as private?
         }
         // Validate the asset code
         validateInputAssetCode(item.assetCode);
@@ -374,7 +374,14 @@
         return warnings;
     }
 
-    function processActionNominalValueReduction(item, portfolioState) {
+    /**
+     * The unspecific account income action is an event doesn't affect the asset holdings in any meaningful way, but
+     * results in an untaxed cash income of the asset's currency - some form of payout by the company. By "untaxed" we
+     * don't mean that the income is not taxed, but rather that the tax is not deducted with the payout automatically.
+     * An example of such an event could be nominal value reduction - important for the company for accounting purposes,
+     * but doesn't affect the held assets directly.
+     */
+    function processActionUnspecificAccountingIncomeAction(item, portfolioState) {
         let warnings = [];
 
         // Validate that the platform exists
@@ -383,7 +390,7 @@
         }
         // Validate that the asset type is supported
         if (item.assetType !== "Stock") {
-            throw new Error(`Asset type "${item.assetType}" is not supported for "NominalValueReduction" action`);
+            throw new Error(`Asset type "${item.assetType}" is not supported for "UnspecificAccountingIncomeAction" action`);
         }
         // Validate the asset code
         validateInputAssetCode(item.assetCode);
