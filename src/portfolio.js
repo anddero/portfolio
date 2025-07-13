@@ -68,6 +68,32 @@ class IndexFundHolding {
     }
 }
 
+class BondHolding {
+    constructor(code, friendlyName, currency) {
+        validateNonBlankString(code).orThrow('code');
+        validateNonBlankString(friendlyName).orThrow('friendlyName');
+        validateNonBlankString(currency).orThrow('currency');
+        this.code = code;
+        this.friendlyName = friendlyName;
+        this.currency = currency;
+        this.shares = new Decimal(0);
+    }
+
+    getCurrency() {
+        return this.currency;
+    }
+
+    getCurrentShares() {
+        return this.shares;
+    }
+
+    updateShares(diff) {
+        validateNonZeroConcreteDecimal(diff).orThrow('diff');
+        this.shares = this.shares.plus(diff);
+        return this.shares;
+    }
+}
+
 class Platform {
     constructor(name) {
         validateNonBlankString(name).orThrow('name');
@@ -75,6 +101,7 @@ class Platform {
         this.cashHoldings = new Map(); // CashHolding objects by currency code
         this.stockHoldings = new Map(); // StockHolding objects by asset code
         this.indexFundHoldings = new Map(); // IndexFundHolding objects by asset code
+        this.bondHoldings = new Map(); // BondHolding objects by asset code
     }
 
     hasCashHolding(currency) {
@@ -92,6 +119,11 @@ class Platform {
         return this.indexFundHoldings.has(code);
     }
 
+    hasBondHolding(code) {
+        validateNonBlankString(code).orThrow('code');
+        return this.bondHoldings.has(code);
+    }
+
     validateAssetCodeUnique(code) {
         if (this.hasCashHolding(code)) {
             return new VRes(`Cash holding "${code}" exists`);
@@ -101,6 +133,9 @@ class Platform {
         }
         if (this.hasIndexFundHolding(code)) {
             return new VRes(`Index fund "${code}" exists`);
+        }
+        if (this.hasBondHolding(code)) {
+            return new VRes(`Bond holding "${code}" exists`);
         }
         return new VRes();
     }
@@ -115,6 +150,11 @@ class Platform {
             for (let holding of this.indexFundHoldings.values()) {
                 if (holding.friendlyName === name) {
                     return new VRes(`Index fund "${name}" exists`);
+                }
+            }
+            for (let holding of this.bondHoldings.values()) {
+                if (holding.friendlyName === name) {
+                    return new VRes(`Bond holding "${name}" exists`);
                 }
             }
             return new VRes();
@@ -143,6 +183,13 @@ class Platform {
         return this.indexFundHoldings.get(code);
     }
 
+    getBondHolding(code) {
+        if (!this.hasBondHolding(code)) {
+            throw new Error(`No bond holding for code ${code}`);
+        }
+        return this.bondHoldings.get(code);
+    }
+
     addCashHolding(cashHolding) {
         if (!(cashHolding instanceof CashHolding)) {
             throw new Error('Not a CashHolding');
@@ -167,5 +214,14 @@ class Platform {
         this.validateAssetCodeUnique(indexFundHolding.code).orThrow();
         this.validateAssetNameUnique(indexFundHolding.friendlyName).orThrow();
         this.indexFundHoldings.set(indexFundHolding.code, indexFundHolding);
+    }
+
+    addBondHolding(bondHolding) {
+        if (!(bondHolding instanceof BondHolding)) {
+            throw new Error('Not a BondHolding');
+        }
+        this.validateAssetCodeUnique(bondHolding.code).orThrow();
+        this.validateAssetNameUnique(bondHolding.friendlyName).orThrow();
+        this.bondHoldings.set(bondHolding.code, bondHolding);
     }
 }
