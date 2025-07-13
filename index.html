@@ -252,7 +252,7 @@
         }
 
         let portfolioState = {
-            platforms: new Map() // Map of platform objects by the platform name
+            platforms: new Map() // Map of Platform objects by the platform name
         };
         let activityErrorMap = new Map();
 
@@ -352,13 +352,11 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code exists on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (!platform.stock.has(item.assetCode)) {
-            throw new Error(`Asset code "${item.assetCode}" does not exist on platform "${item.platform}"`);
-        }
+        const stockHolding = platform.getStockHolding(item.assetCode);
         // Validate the currency
         validateInputCurrency(item.currency);
         // Validate that the currency matches the existing asset currency
-        const existingCurrency = platform.stock.get(item.assetCode).getCurrency();
+        const existingCurrency = stockHolding.getCurrency();
         if (existingCurrency !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
         }
@@ -389,13 +387,11 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code exists on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (!platform.stock.has(item.assetCode)) {
-            throw new Error(`Asset code "${item.assetCode}" does not exist on platform "${item.platform}"`);
-        }
+        const stockHolding = platform.getStockHolding(item.assetCode);
         // Validate the currency
         validateInputCurrency(item.currency);
         // Validate that the currency matches the existing asset currency
-        const existingCurrency = platform.stock.get(item.assetCode).getCurrency();
+        const existingCurrency = stockHolding.getCurrency();
         if (existingCurrency !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
         }
@@ -510,13 +506,11 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code exists on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (!platform.stock.has(item.assetCode)) {
-            throw new Error(`Asset code "${item.assetCode}" does not exist on platform "${item.platform}"`);
-        }
+        const stockHolding = platform.getStockHolding(item.assetCode);
         // Validate the currency
         validateInputCurrency(item.currency);
         // Validate that the currency matches the existing asset currency
-        const existingCurrency = platform.stock.get(item.assetCode).getCurrency();
+        const existingCurrency = stockHolding.getCurrency();
         if (existingCurrency !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
         }
@@ -612,9 +606,7 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code exists on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (!platform.stock.has(item.assetCode)) {
-            throw new Error(`Stock with code "${item.assetCode}" does not exist on platform "${item.platform}"`);
-        }
+        const stockHolding = platform.getStockHolding(item.assetCode);
         const shareCount = parseAmountToDecimal(item.totalShares, "totalShares", 2);
         // Validate that the share count is positive
         if (shareCount.lessThan(0)) {
@@ -623,7 +615,7 @@
         // Validate the currency
         validateInputCurrency(item.currency);
         // Validate that the currency matches the existing asset currency
-        const existingCurrency = platform.stock.get(item.assetCode).getCurrency();
+        const existingCurrency = stockHolding.getCurrency();
         if (existingCurrency !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
         }
@@ -661,14 +653,12 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code exists on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (!platform.indexFund.has(item.assetCode)) {
-            throw new Error(`Index fund with code "${item.assetCode}" does not exist on platform "${item.platform}"`);
-        }
+        const indexFundHolding = platform.getIndexFundHolding(item.assetCode);
 
         // Validate the currency
         validateInputCurrency(item.currency);
         // Validate that the currency matches the existing asset currency
-        const existingCurrency = platform.indexFund.get(item.assetCode).getCurrency();
+        const existingCurrency = indexFundHolding.getCurrency();
         if (existingCurrency !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
         }
@@ -695,14 +685,12 @@
 
         // Validate that the asset code exists on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (!platform.indexFund.has(item.assetCode)) {
-            throw new Error(`Asset code "${item.assetCode}" does not exist on platform "${item.platform}"`);
-        }
+        const indexFundHolding = platform.getIndexFundHolding(item.assetCode);
 
         // Validate the currency
         validateInputCurrency(item.currency);
         // Validate that the currency matches the existing asset currency
-        const existingCurrency = platform.indexFund.get(item.assetCode).getCurrency();
+        const existingCurrency = indexFundHolding.getCurrency();
         if (existingCurrency !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
         }
@@ -780,12 +768,10 @@
 
         // Check that the cash exists on the platform.
         const platform = portfolioState.platforms.get(item.platform);
-        if (!platform.cash.has(item.currency)) {
-            throw new Error(`Cash "${item.currency}" does not exist on platform`);
-        }
+        const cashHolding = platform.getCashHolding(item.currency);
 
         // Get the cash amount from the platform.
-        const cashAmountDecimal = platform.cash.get(item.currency).getCurrentValue();
+        const cashAmountDecimal = cashHolding.getCurrentValue();
 
         // Validate the amount
         if (!cashAmountDecimal.equals(totalValueDecimal)) {
@@ -819,12 +805,7 @@
             throw new Error(`Platform name "${item.platform}" is too long, maximum allowed length is 50 characters`);
         }
         // Add the platform to the portfolio
-        portfolioState.platforms.set(item.platform, {
-            name: item.platform,
-            cash: new Map(), // Map of CashHolding objects by the currency code
-            stock: new Map(), // Map of StockHolding objects by the asset code
-            indexFund: new Map(), // Map of IndexFundHolding objects by the asset code
-        });
+        portfolioState.platforms.set(item.platform, new Platform(item.platform));
 
         return warnings;
     }
@@ -864,15 +845,13 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code does not already exist on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        // TODO Check across all asset types and names for uniqueness.
         // Validate the asset currency
-        validateInputCurrency(item.currency);
+        validateInputCurrency(item.currency); // TODO Validate all inputs via helpers and providing list of expected fields
         // Validate the friendly asset name
         validateInputAssetFriendlyName(item.friendlyName);
         // Validate that the friendly name does not already exist on the platform
-        // TODO Check across all asset types and names for uniqueness.
         // Add the new stock holding to the platform
-        platform.stock.set(item.assetCode, new StockHolding(item.assetCode, item.friendlyName, item.currency));
+        platform.addStockHolding(new StockHolding(item.assetCode, item.friendlyName, item.currency));
 
         return warnings;
     }
@@ -887,15 +866,13 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code does not already exist on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        // TODO Check across all asset types and names for uniqueness.
         // Validate the asset currency
         validateInputCurrency(item.currency);
         // Validate the friendly asset name
         validateInputAssetFriendlyName(item.friendlyName);
         // Validate that the friendly name does not already exist on the platform
-        // TODO Check across all asset types and names for uniqueness.
         // Add the new stock holding to the platform
-        platform.indexFund.set(item.assetCode, new IndexFundHolding(item.assetCode, item.friendlyName, item.currency));
+        platform.addIndexFundHolding(new IndexFundHolding(item.assetCode, item.friendlyName, item.currency));
 
         return warnings;
     }
@@ -911,23 +888,14 @@
 
         // Validate that the currency does not already exist on the platform.
         const platform = portfolioState.platforms.get(item.platform);
-        if (platform.cash.has(item.currency)) {
-            throw new Error(`Cash "${item.currency}" already exists on platform "${item.platform}"`);
-        }
-        // Add the new cash holding to the platform.
-        platform.cash.set(item.currency, new CashHolding(item.currency));
+        platform.addCashHolding(new CashHolding(item.currency));
 
         return warnings;
     }
 
     function updateCash(platform, currency, updateDecimal) {
         let warnings = [];
-        // Check that the currency exists on the platform.
-        if (!platform.cash.has(currency)) {
-            throw new Error(`Cash "${currency}" does not exist on platform "${platform.name}"`);
-        }
-        // Update the amount.
-        let newAmt = platform.cash.get(currency).updateValue(updateDecimal);
+        let newAmt = platform.getCashHolding(currency).updateValue(updateDecimal);
         if (newAmt.lessThan(0)) {
             warnings.push(`Platform "${platform.name}" has become negative in currency "${currency}", new amount is ${newAmt}.`);
         }
@@ -936,12 +904,7 @@
 
     function updateIndexFund(platform, assetCode, updateDecimal) {
         let warnings = [];
-        // Check that the index fund exists on the platform.
-        if (!platform.indexFund.has(assetCode)) {
-            throw new Error(`Index fund "${assetCode}" does not exist on platform "${platform.name}"`);
-        }
-        // Update the amount.
-        let newAmt = platform.indexFund.get(assetCode).updateShares(updateDecimal);
+        let newAmt = platform.getIndexFundHolding(assetCode).updateShares(updateDecimal);
         if (newAmt.lessThan(0)) {
             warnings.push(`Platform "${platform.name}" has become negative in index fund "${assetCode}", current amount is ${newAmt}.`);
         }
@@ -950,10 +913,7 @@
 
     function updateStock(platform, assetCode, shareCountDecimal) {
         let warnings = [];
-        if (!platform.stock.has(assetCode)) {
-            throw new Error(`Stock "${assetCode}" does not exist on platform "${platform.name}"`);
-        }
-        let newShares = platform.stock.get(assetCode).updateShares(shareCountDecimal);
+        let newShares = platform.getStockHolding(assetCode).updateShares(shareCountDecimal);
         if (newShares.lessThan(0)) {
             warnings.push(`Platform "${platform.name}" has become negative in stock "${assetCode}", new shares ${newShares}.`);
         }

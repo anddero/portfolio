@@ -3,16 +3,26 @@ class VRes {
     constructor(message = undefined) {
         this.message = message;
     }
-    orThrow(message) {
+    orThrow(message = undefined) {
         if (this.message) {
-            throw new Error(`${message}: ${this.message}`);
+            if (message) {
+                throw new Error(`${message}: ${this.message}`);
+            }
+            throw new Error(this.message);
         }
+        return this;
     }
-    then(callback) {
+    and(callback) {
         if (this.message) {
             return this;
         }
         return callback();
+    }
+    extend(message) {
+        if (this.message) {
+            this.message = `${message}: ${this.message}`;
+        }
+        return this;
     }
 }
 
@@ -43,16 +53,16 @@ function validateConcreteInt(value) {
 }
 
 function validateIntInRange(value, min, max) {
-    return validateConcreteInt(value)
-        .then(() => {
-            if (value < min) {
-                return new VRes(`Less than ${min}`);
-            }
-            if (value > max) {
-                return new VRes(`Greater than ${max}`);
-            }
-            return new VRes();
-        });
+    let validateRange = () => {
+        if (value < min) {
+            return new VRes(`Less than ${min}`);
+        }
+        if (value > max) {
+            return new VRes(`Greater than ${max}`);
+        }
+        return new VRes();
+    };
+    return validateConcreteInt(value).and(validateRange);
 }
 
 function validateNonZeroConcreteDecimal(value) {
