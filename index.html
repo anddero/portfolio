@@ -823,10 +823,6 @@
             cash: new Map(), // Map of CashHolding objects by the currency code
             stock: new Map(), // Map of StockHolding objects by the asset code
             indexFund: new Map(), // Map of IndexFundHolding objects by the asset code
-            assetTypes: new Map(), // Map of asset type by the asset code // TODO remove
-            assetNames: new Map(), // Map of friendly asset name by the asset code // TODO move to asset object
-            assetCurrencies: new Map(), // Map of asset currency by the asset code // TODO move to asset object
-            // TODO Check existence of asset before any action with the asset (needs to be added by "NewAsset" action)
         });
 
         return warnings;
@@ -867,23 +863,13 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code does not already exist on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (platform.assetNames.has(item.assetCode)) {
-            throw new Error(`Asset code "${item.assetCode}" already exists on platform "${item.platform}"`);
-        }
+        // TODO Check across all asset types and names for uniqueness.
         // Validate the asset currency
         validateInputCurrency(item.currency);
         // Validate the friendly asset name
         validateInputAssetFriendlyName(item.friendlyName);
         // Validate that the friendly name does not already exist on the platform
-        if ([...platform.assetNames.values()].includes(item.friendlyName)) {
-            throw new Error(`Friendly name "${item.friendlyName}" already exists on platform "${item.platform}"`);
-        }
-        // Add the asset code and friendly name to the platform
-        platform.assetNames.set(item.assetCode, item.friendlyName);
-        // Add the asset type to the platform
-        platform.assetTypes.set(item.assetCode, item.assetType);
-        // Add the asset currency to the platform
-        platform.assetCurrencies.set(item.assetCode, item.currency);
+        // TODO Check across all asset types and names for uniqueness.
         // Add the new stock holding to the platform
         platform.stock.set(item.assetCode, new StockHolding(item.assetCode, item.friendlyName, item.currency));
 
@@ -900,23 +886,13 @@
         validateInputAssetCode(item.assetCode);
         // Validate that the asset code does not already exist on the platform
         const platform = portfolioState.platforms.get(item.platform);
-        if (platform.assetNames.has(item.assetCode)) {
-            throw new Error(`Asset code "${item.assetCode}" already exists on platform "${item.platform}"`);
-        }
+        // TODO Check across all asset types and names for uniqueness.
         // Validate the asset currency
         validateInputCurrency(item.currency);
         // Validate the friendly asset name
         validateInputAssetFriendlyName(item.friendlyName);
         // Validate that the friendly name does not already exist on the platform
-        if ([...platform.assetNames.values()].includes(item.friendlyName)) {
-            throw new Error(`Friendly name "${item.friendlyName}" already exists on platform "${item.platform}"`);
-        }
-        // Add the asset code and friendly name to the platform
-        platform.assetNames.set(item.assetCode, item.friendlyName);
-        // Add the asset type to the platform
-        platform.assetTypes.set(item.assetCode, item.assetType);
-        // Add the asset currency to the platform
-        platform.assetCurrencies.set(item.assetCode, item.currency);
+        // TODO Check across all asset types and names for uniqueness.
         // Add the new stock holding to the platform
         platform.indexFund.set(item.assetCode, new IndexFundHolding(item.assetCode, item.friendlyName, item.currency));
 
