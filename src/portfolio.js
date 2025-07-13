@@ -1,6 +1,6 @@
 class CashHolding {
     constructor(currency) {
-        validateNonBlankString(currency).orThrow('currency');
+        validateNonBlankString(currency).getOrThrow('currency');
         this.currency = currency;
         this.value = new Decimal(0);
     }
@@ -10,7 +10,7 @@ class CashHolding {
     }
 
     updateValue(diff) {
-        validateNonZeroConcreteDecimal(diff).orThrow('diff');
+        validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
         this.value = this.value.plus(diff);
         return this.value;
     }
@@ -18,9 +18,9 @@ class CashHolding {
 
 class StockHolding {
     constructor(code, friendlyName, currency) {
-        validateNonBlankString(code).orThrow('code');
-        validateNonBlankString(friendlyName).orThrow('friendlyName');
-        validateNonBlankString(currency).orThrow('currency');
+        validateNonBlankString(code).getOrThrow('code');
+        validateNonBlankString(friendlyName).getOrThrow('friendlyName');
+        validateNonBlankString(currency).getOrThrow('currency');
         this.code = code;
         this.friendlyName = friendlyName;
         this.currency = currency;
@@ -36,7 +36,7 @@ class StockHolding {
     }
 
     updateShares(diff) {
-        validateNonZeroConcreteDecimal(diff).orThrow('diff');
+        validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
         this.shares = this.shares.plus(diff);
         return this.shares;
     }
@@ -47,9 +47,9 @@ class StockHolding {
  */
 class IndexFundHolding {
     constructor(code, friendlyName, currency) {
-        validateNonBlankString(code).orThrow('code');
-        validateNonBlankString(friendlyName).orThrow('friendlyName');
-        validateNonBlankString(currency).orThrow('currency');
+        validateNonBlankString(code).getOrThrow('code');
+        validateNonBlankString(friendlyName).getOrThrow('friendlyName');
+        validateNonBlankString(currency).getOrThrow('currency');
         this.code = code;
         this.friendlyName = friendlyName;
         this.currency = currency;
@@ -65,7 +65,7 @@ class IndexFundHolding {
     }
 
     updateShares(diff) {
-        validateNonZeroConcreteDecimal(diff).orThrow('diff');
+        validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
         this.shares = this.shares.plus(diff);
         return this.shares;
     }
@@ -73,9 +73,9 @@ class IndexFundHolding {
 
 class BondHolding {
     constructor(code, friendlyName, currency) {
-        validateNonBlankString(code).orThrow('code');
-        validateNonBlankString(friendlyName).orThrow('friendlyName');
-        validateNonBlankString(currency).orThrow('currency');
+        validateNonBlankString(code).getOrThrow('code');
+        validateNonBlankString(friendlyName).getOrThrow('friendlyName');
+        validateNonBlankString(currency).getOrThrow('currency');
         this.code = code;
         this.friendlyName = friendlyName;
         this.currency = currency;
@@ -91,7 +91,7 @@ class BondHolding {
     }
 
     updateShares(diff) {
-        validateNonZeroConcreteDecimal(diff).orThrow('diff');
+        validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
         this.shares = this.shares.plus(diff);
         return this.shares;
     }
@@ -99,7 +99,7 @@ class BondHolding {
 
 class Platform {
     constructor(name) {
-        validateNonBlankString(name).orThrow('name');
+        validateNonBlankString(name).getOrThrow('name');
         this.name = name;
         this.cashHoldings = new Map(); // CashHolding objects by currency code
         this.stockHoldings = new Map(); // StockHolding objects by asset code
@@ -108,22 +108,22 @@ class Platform {
     }
 
     hasCashHolding(currency) {
-        validateNonBlankString(currency).orThrow('currency');
+        validateNonBlankString(currency).getOrThrow('currency');
         return this.cashHoldings.has(currency);
     }
 
     hasStockHolding(code) {
-        validateNonBlankString(code).orThrow('code');
+        validateNonBlankString(code).getOrThrow('code');
         return this.stockHoldings.has(code);
     }
 
     hasIndexFundHolding(code) {
-        validateNonBlankString(code).orThrow('code');
+        validateNonBlankString(code).getOrThrow('code');
         return this.indexFundHoldings.has(code);
     }
 
     hasBondHolding(code) {
-        validateNonBlankString(code).orThrow('code');
+        validateNonBlankString(code).getOrThrow('code');
         return this.bondHoldings.has(code);
     }
 
@@ -197,7 +197,7 @@ class Platform {
         if (!(cashHolding instanceof CashHolding)) {
             throw new Error('Not a CashHolding');
         }
-        this.validateAssetCodeUnique(cashHolding.currency).orThrow();
+        this.validateAssetCodeUnique(cashHolding.currency).getOrThrow();
         this.cashHoldings.set(cashHolding.currency, cashHolding);
     }
 
@@ -205,8 +205,8 @@ class Platform {
         if (!(stockHolding instanceof StockHolding)) {
             throw new Error('Not a StockHolding');
         }
-        this.validateAssetCodeUnique(stockHolding.code).orThrow();
-        this.validateAssetNameUnique(stockHolding.friendlyName).orThrow();
+        this.validateAssetCodeUnique(stockHolding.code).getOrThrow();
+        this.validateAssetNameUnique(stockHolding.friendlyName).getOrThrow();
         this.stockHoldings.set(stockHolding.code, stockHolding);
     }
 
@@ -214,8 +214,8 @@ class Platform {
         if (!(indexFundHolding instanceof IndexFundHolding)) {
             throw new Error('Not an IndexFundHolding');
         }
-        this.validateAssetCodeUnique(indexFundHolding.code).orThrow();
-        this.validateAssetNameUnique(indexFundHolding.friendlyName).orThrow();
+        this.validateAssetCodeUnique(indexFundHolding.code).getOrThrow();
+        this.validateAssetNameUnique(indexFundHolding.friendlyName).getOrThrow();
         this.indexFundHoldings.set(indexFundHolding.code, indexFundHolding);
     }
 
@@ -223,8 +223,8 @@ class Platform {
         if (!(bondHolding instanceof BondHolding)) {
             throw new Error('Not a BondHolding');
         }
-        this.validateAssetCodeUnique(bondHolding.code).orThrow();
-        this.validateAssetNameUnique(bondHolding.friendlyName).orThrow();
+        this.validateAssetCodeUnique(bondHolding.code).getOrThrow();
+        this.validateAssetNameUnique(bondHolding.friendlyName).getOrThrow();
         this.bondHoldings.set(bondHolding.code, bondHolding);
     }
 }
