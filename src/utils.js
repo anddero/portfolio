@@ -10,12 +10,18 @@ class VRes {
      * to indicate a success.
      * @param value Any value.
      * @param isFailure If true, the VRes is considered a failure (value must be string), otherwise a success.
+     * @param warnings Optional array of warning messages.
      */
-    constructor(value = undefined, isFailure = true) {
+    constructor(value = undefined, isFailure = true, warnings = []) {
         // Check if isFailure is a defined boolean.
         if (typeof isFailure !== 'boolean') {
             throw new Error('isFailure must be a boolean');
         }
+        // Check if warnings is an array of strings.
+        if (!Array.isArray(warnings) || !warnings.every(w => typeof w === 'string')) {
+            throw new Error('Warnings must be an array of strings');
+        }
+        this.warnings = warnings;
         // Success case.
         if (typeof value !== 'string' || !isFailure) {
             this.message = undefined;
@@ -33,7 +39,7 @@ class VRes {
      * Throw with an optional message prefix if the VRes is a failure.
      * Otherwise, return the underlying success value.
      */
-    getOrThrow(prefix = undefined) {
+    getOrThrow(prefix = undefined, getWithWarnings = false) {
         if (this.isFailure) {
             if (prefix) {
                 if (typeof prefix !== 'string') {
@@ -42,6 +48,12 @@ class VRes {
                 throw new Error(`${prefix}: ${this.message}`);
             }
             throw new Error(this.message);
+        }
+        if (getWithWarnings) {
+            return [this.value, this.warnings];
+        }
+        if (this.warnings.length > 0) {
+            throw new Error("VRes has warnings, but getWithWarnings is false. Use getWithWarnings to retrieve them.");
         }
         return this.value;
     }
@@ -62,7 +74,22 @@ class VRes {
         if (!(res instanceof VRes)) {
             throw new Error('Callback must return a VRes');
         }
+        res.warnings = this.warnings.concat(res.warnings);
         return res;
+    }
+
+    /**
+     * Do something with the value in the VRes if it's a success.
+     */
+    apply(callback) {
+        if (typeof callback !== 'function') {
+            throw new Error('Callback must be a function');
+        }
+        if (this.isFailure) {
+            return this;
+        }
+        callback(this.value);
+        return this;
     }
 
     /**
@@ -148,8 +175,9 @@ function validateNonZeroConcreteDecimal(value) {
  * The string should be in format "1234.56", "-0.09", "0,00", "1,2", "49", etc.
  * @param {string} decimalStr The decimal amount string to parse.
  * @param {number} maxDecimals The maximum number of decimal places allowed (between 2 and 10).
+ * @param {boolean} isOptional If true, the decimalStr can be undefined, and will return 0.
  */
-function parseDecimalInput(decimalStr, maxDecimals) {
+function parseDecimalInput(decimalStr, maxDecimals, isOptional = false) {
     let parseRegex = () => {
         const regex = new RegExp(`^-?\\d+([.,]\\d{1,${maxDecimals}})?$`);
         if (!regex.test(decimalStr)) {
@@ -158,6 +186,9 @@ function parseDecimalInput(decimalStr, maxDecimals) {
         return new VRes(new Decimal(decimalStr.replace(',', '.')));
     };
     validateIntInRange(maxDecimals, 2, 10).getOrThrow('maxDecimals');
+    if (isOptional && decimalStr === undefined) {
+        return new VRes(new Decimal(0));
+    }
     return validateNonBlankString(decimalStr).and(parseRegex);
 }
 
@@ -184,6 +215,19 @@ function validateAssetNameInput(assetName) {
     };
     return validateNonBlankString(assetName)
         .and(() => validateMaxStringLength(assetName, 50))
+        .and(validateRegex);
+}
+
+function validatePlatformNameInput(platformName) {
+    let validateRegex = () => {
+        const platformNameRegex = /^[a-zA-Z]+$/;
+        if (!platformNameRegex.test(platformName)) {
+            return new VRes(`Allowed symbols are (a-z A-Z)`);
+        }
+        return new VRes();
+    };
+    return validateNonBlankString(platformName)
+        .and(() => validateMaxStringLength(platformName, 50))
         .and(validateRegex);
 }
 
@@ -232,4 +276,31 @@ function parseDateInput(dateStr) {
         return new VRes(dateObj);
     };
     return validateNonBlankString(dateStr).and(validateRegex);
+}
+
+function validateActionInput(inputValue) {
+    let validate = () => {
+        if (!Object.getOwnPropertyNames(ACTIONS).includes(inputValue)) {
+            return new VRes(`Action "${inputValue}" is unknown`);
+        }
+        return new VRes();
+    };
+    return validateNonBlankString(inputValue).and(validate);
+}
+
+function validateAssetTypeInput(inputValue) {
+    let validate = () => {
+        if (!ASSET_TYPES.includes(inputValue)) {
+            return new VRes(`Asset type "${inputValue}" is unknown`);
+        }
+        return new VRes();
+    };
+    return validateNonBlankString(inputValue).and(validate);
+}
+
+function validateNotesInput(inputValue) {
+    if (typeof inputValue !== "string" && inputValue !== undefined) {
+        return new VRes(`Not a string`);
+    }
+    return new VRes();
 }
