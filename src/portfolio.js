@@ -42,6 +42,9 @@ class StockHolding {
     }
 }
 
+/**
+ * Index fund shares are mapped 1:1 to the underlying currency.
+ */
 class IndexFundHolding {
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).orThrow('code');
