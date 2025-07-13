@@ -658,9 +658,19 @@
         let warnings = [];
 
         validateInputAssetCode(item.assetCode);
+        // Validate that the asset code exists on the platform
+        const platform = portfolioState.platforms.get(item.platform);
+        if (!platform.indexFund.has(item.assetCode)) {
+            throw new Error(`Index fund with code "${item.assetCode}" does not exist on platform "${item.platform}"`);
+        }
 
         // Validate the currency
         validateInputCurrency(item.currency);
+        // Validate that the currency matches the existing asset currency
+        const existingCurrency = platform.indexFund.get(item.assetCode).getCurrency();
+        if (existingCurrency !== item.currency) {
+            throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
+        }
         // Validate the total value
         const totalValueDecimal = parseAmountToDecimal(item.totalValue, "totalValue");
         // Validate that the total value is positive
@@ -668,7 +678,6 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Subtract the spent cash from the platform
-        const platform = portfolioState.platforms.get(item.platform);
         warnings = warnings.concat(updateCash(platform, item.currency, totalValueDecimal.negated()));
         // Add the index fund cash to the platform
         warnings = warnings.concat(updateIndexFund(platform, item.assetCode, totalValueDecimal));
@@ -691,6 +700,11 @@
 
         // Validate the currency
         validateInputCurrency(item.currency);
+        // Validate that the currency matches the existing asset currency
+        const existingCurrency = platform.indexFund.get(item.assetCode).getCurrency();
+        if (existingCurrency !== item.currency) {
+            throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${existingCurrency}"`);
+        }
         // Validate the total value
         const totalValueDecimal = parseAmountToDecimal(item.totalValue, "totalValue");
         // Validate that the total value is positive
@@ -808,7 +822,7 @@
             name: item.platform,
             cash: new Map(), // Map of CashHolding objects by the currency code
             stock: new Map(), // Map of StockHolding objects by the asset code
-            indexFund: new Map(), // Map of index fund cash amount Decimal objects by the asset code
+            indexFund: new Map(), // Map of IndexFundHolding objects by the asset code
             assetTypes: new Map(), // Map of asset type by the asset code // TODO remove
             assetNames: new Map(), // Map of friendly asset name by the asset code // TODO move to asset object
             assetCurrencies: new Map(), // Map of asset currency by the asset code // TODO move to asset object
@@ -834,6 +848,8 @@
         switch (item.assetType) {
             case "Stock":
                 return processActionNewAssetStock(item, portfolioState);
+            case "IndexFund":
+                return processActionNewAssetIndexFund(item, portfolioState);
             case "Cash":
                 return processActionNewAssetCash(item, portfolioState);
             default:
@@ -875,6 +891,39 @@
     }
 
     /*
+     * Process the "NewAsset" action of introducing a new asset of type "IndexFund" to the portfolio.
+     */
+    function processActionNewAssetIndexFund(item, portfolioState) {
+        let warnings = [];
+
+        // Validate the asset code
+        validateInputAssetCode(item.assetCode);
+        // Validate that the asset code does not already exist on the platform
+        const platform = portfolioState.platforms.get(item.platform);
+        if (platform.assetNames.has(item.assetCode)) {
+            throw new Error(`Asset code "${item.assetCode}" already exists on platform "${item.platform}"`);
+        }
+        // Validate the asset currency
+        validateInputCurrency(item.currency);
+        // Validate the friendly asset name
+        validateInputAssetFriendlyName(item.friendlyName);
+        // Validate that the friendly name does not already exist on the platform
+        if ([...platform.assetNames.values()].includes(item.friendlyName)) {
+            throw new Error(`Friendly name "${item.friendlyName}" already exists on platform "${item.platform}"`);
+        }
+        // Add the asset code and friendly name to the platform
+        platform.assetNames.set(item.assetCode, item.friendlyName);
+        // Add the asset type to the platform
+        platform.assetTypes.set(item.assetCode, item.assetType);
+        // Add the asset currency to the platform
+        platform.assetCurrencies.set(item.assetCode, item.currency);
+        // Add the new stock holding to the platform
+        platform.indexFund.set(item.assetCode, new IndexFundHolding(item.assetCode, item.friendlyName, item.currency));
+
+        return warnings;
+    }
+
+    /*
      * Process the "NewAsset" action of introducing a new asset of type "Cash" to the portfolio.
      */
     function processActionNewAssetCash(item, portfolioState) {
@@ -910,8 +959,12 @@
 
     function updateIndexFund(platform, assetCode, updateDecimal) {
         let warnings = [];
-        let newAmt = (platform.indexFund.get(assetCode) || new Decimal(0)).plus(updateDecimal);
-        platform.indexFund.set(assetCode, newAmt);
+        // Check that the index fund exists on the platform.
+        if (!platform.indexFund.has(assetCode)) {
+            throw new Error(`Index fund "${assetCode}" does not exist on platform "${platform.name}"`);
+        }
+        // Update the amount.
+        let newAmt = platform.indexFund.get(assetCode).updateShares(updateDecimal);
         if (newAmt.lessThan(0)) {
             warnings.push(`Platform "${platform.name}" has become negative in index fund "${assetCode}", current amount is ${newAmt}.`);
         }
