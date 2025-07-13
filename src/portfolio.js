@@ -1,5 +1,6 @@
 class CashHolding {
     constructor(currency) {
+        validateNonBlankString(currency).thenThrow('currency');
         this.currency = currency;
         this.value = new Decimal(0);
     }
@@ -9,6 +10,7 @@ class CashHolding {
     }
 
     updateValue(diff) {
+        validateNonZeroConcreteDecimal(diff).thenThrow('diff');
         this.value = this.value.plus(diff);
         return this.value;
     }
@@ -16,6 +18,9 @@ class CashHolding {
 
 class StockHolding {
     constructor(code, friendlyName, currency) {
+        validateNonBlankString(code).thenThrow('code');
+        validateNonBlankString(friendlyName).thenThrow('friendlyName');
+        validateNonBlankString(currency).thenThrow('currency');
         this.code = code;
         this.friendlyName = friendlyName;
         this.currency = currency;
@@ -31,6 +36,7 @@ class StockHolding {
     }
 
     updateShares(diff) {
+        validateNonZeroConcreteDecimal(diff).thenThrow('diff');
         this.shares = this.shares.plus(diff);
         return this.shares;
     }
@@ -38,6 +44,9 @@ class StockHolding {
 
 class IndexFundHolding {
     constructor(code, friendlyName, currency) {
+        validateNonBlankString(code).thenThrow('code');
+        validateNonBlankString(friendlyName).thenThrow('friendlyName');
+        validateNonBlankString(currency).thenThrow('currency');
         this.code = code;
         this.friendlyName = friendlyName;
         this.currency = currency;
@@ -53,6 +62,7 @@ class IndexFundHolding {
     }
 
     updateShares(diff) {
+        validateNonZeroConcreteDecimal(diff).thenThrow('diff');
         this.shares = this.shares.plus(diff);
         return this.shares;
     }

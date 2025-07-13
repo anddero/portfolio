@@ -34,6 +34,7 @@
 <!-- JavaScript Section -->
 
 <script src="https://cdn.jsdelivr.net/npm/decimal.js@10.4.3/decimal.min.js"></script>
+<script src="src/utils.js"></script>
 <script src="src/portfolio.js"></script>
 
 <script>
@@ -614,10 +615,10 @@
         if (!platform.stock.has(item.assetCode)) {
             throw new Error(`Stock with code "${item.assetCode}" does not exist on platform "${item.platform}"`);
         }
-        const shareCount = parseCount(item.unitCount, "unitCount");
+        const shareCount = parseAmountToDecimal(item.unitCount, "unitCount");
         // Validate that the share count is positive
-        if (shareCount <= 0) {
-            throw new Error(`Share count "${item.unitCount}" is not a positive integer`);
+        if (shareCount.lessThan(0)) {
+            throw new Error(`Share count "${item.unitCount}" is not a positive number`);
         }
         // Validate the currency
         validateInputCurrency(item.currency);
@@ -947,12 +948,12 @@
         return warnings;
     }
 
-    function updateStock(platform, assetCode, shareCount) {
+    function updateStock(platform, assetCode, shareCountDecimal) {
         let warnings = [];
         if (!platform.stock.has(assetCode)) {
             throw new Error(`Stock "${assetCode}" does not exist on platform "${platform.name}"`);
         }
-        let newShares = platform.stock.get(assetCode).updateShares(shareCount);
+        let newShares = platform.stock.get(assetCode).updateShares(shareCountDecimal);
         if (newShares.lessThan(0)) {
             warnings.push(`Platform "${platform.name}" has become negative in stock "${assetCode}", new shares ${newShares}.`);
         }
