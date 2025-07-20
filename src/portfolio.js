@@ -256,4 +256,15 @@ class Portfolio {
         }
         this.platforms.set(platform.name, platform);
     }
+
+    setSameOrLaterDate(date) {
+        if (!(date instanceof Date)) {
+            throw new Error('Not a Date');
+        }
+        if (this.latestDate && date < this.latestDate) {
+            return VRes(`Date ${date.toISOString()} earlier than ${this.latestDate.toISOString()}`);
+        }
+        this.latestDate = date;
+        return new VRes();
+    }
 }

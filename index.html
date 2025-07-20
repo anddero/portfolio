@@ -279,13 +279,9 @@
     function processAction(item, portfolioObj) {
         item = parseActionInputsByNames(item).getOrThrow('Problem parsing input');
 
-        // Validate date order
-        if (portfolioObj.latestDate && item.date < portfolioObj.latestDate) { // TODO kmere No direct access
-            throw new Error(`Problem parsing input: Date is earlier than the previous action's date.`);
-        }
-        portfolioObj.latestDate = item.date;
+        portfolioObj.setSameOrLaterDate(item.date)
+            .getOrThrow('Record not in chronological order with previous record');
 
-        console.log(item);
         // Process the action with a dedicated function
         switch (item.action) {
             case "NewPlatform":
@@ -912,8 +908,6 @@
         if (typeof item.action !== "string") {
             return new VRes(`Field "action" must be a string`);
         }
-        console.log(item);
-        console.log(Object.getOwnPropertyNames(ACTIONS));
         if (!Object.getOwnPropertyNames(ACTIONS).includes(item.action)) {
             return new VRes(`Action "${item.action}" is not supported`);
         }
@@ -939,7 +933,6 @@
         if (!(expectedFields instanceof Array)) {
             throw new Error(`Expected fields should be an array`);
         }
-        console.log(expectedFields);
         for (let key of Object.getOwnPropertyNames(item)) {
             if (!expectedFields.includes(key)) {
                 return new VRes(`Property "${key}" is unexpected`); // TODO Should be a warning?
