@@ -605,9 +605,10 @@
         }
         warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Subtract the spent cash from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.plus(item.feeValue).negated(), item.date));
+        const spentCash = item.totalValue.plus(item.feeValue).negated();
+        warnings = warnings.concat(updateCash(platform, item.currency, spentCash, item.date));
         // Add the shares to the platform
-        warnings = warnings.concat(updateStock(platform, item.assetCode, item.totalShares));
+        warnings = warnings.concat(updateStock(platform, item.assetCode, item.totalShares, spentCash, item.date));
 
         return warnings;
     }
@@ -665,9 +666,10 @@
         // Validate the total value against unit value and share count
         warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Subtract the spent cash from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.negated(), item.date));
+        const spentCash = item.totalValue.negated();
+        warnings = warnings.concat(updateCash(platform, item.currency, spentCash, item.date));
         // Add the shares to the platform
-        warnings = warnings.concat(updateBond(platform, item.assetCode, item.totalShares));
+        warnings = warnings.concat(updateBond(platform, item.assetCode, item.totalShares, spentCash, item.date));
 
         return warnings;
     }
@@ -690,9 +692,10 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Subtract the spent cash from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.negated(), item.date));
+        const spentCash = item.totalValue.negated();
+        warnings = warnings.concat(updateCash(platform, item.currency, spentCash, item.date));
         // Add the index fund cash to the platform
-        warnings = warnings.concat(updateIndexFund(platform, item.assetCode, item.totalValue));
+        warnings = warnings.concat(updateIndexFund(platform, item.assetCode, item.totalValue, spentCash, item.date));
         return warnings;
     }
 
@@ -723,9 +726,10 @@
         // Validate the total value against unit value and share count
         warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Add the acquired cash to the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue, item.date));
+        const acquiredCash = item.totalValue;
+        warnings = warnings.concat(updateCash(platform, item.currency, acquiredCash, item.date));
         // Subtract the sold shares from the platform
-        warnings = warnings.concat(updateStock(platform, item.assetCode, item.totalShares.negated()));
+        warnings = warnings.concat(updateStock(platform, item.assetCode, item.totalShares.negated(), acquiredCash, item.date));
 
         return warnings;
     }
@@ -747,9 +751,10 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Add the acquired cash to the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue, item.date));
+        const acquiredCash = item.totalValue;
+        warnings = warnings.concat(updateCash(platform, item.currency, acquiredCash, item.date));
         // Subtract the index fund cash from the platform
-        warnings = warnings.concat(updateIndexFund(platform, item.assetCode, item.totalValue.negated()));
+        warnings = warnings.concat(updateIndexFund(platform, item.assetCode, item.totalValue.negated(), acquiredCash, item.date));
         return warnings;
     }
 
@@ -900,31 +905,16 @@
         return warnings;
     }
 
-    function updateIndexFund(platform, assetCode, updateDecimal) {
-        let warnings = [];
-        let newAmt = platform.getIndexFundHolding(assetCode).updateShares(updateDecimal);
-        if (newAmt.lessThan(0)) {
-            warnings.push(`Platform "${platform.getName()}" has become negative in index fund "${assetCode}", current amount is ${newAmt}.`);
-        }
-        return warnings;
+    function updateIndexFund(platform, assetCode, updateDecimal, acquiredCash, date) {
+        return platform.getIndexFundHolding(assetCode).updateShares(updateDecimal, acquiredCash, date);
     }
 
-    function updateStock(platform, assetCode, shareCountDecimal) {
-        let warnings = [];
-        let newShares = platform.getStockHolding(assetCode).updateShares(shareCountDecimal);
-        if (newShares.lessThan(0)) {
-            warnings.push(`Platform "${platform.getName()}" has become negative in stock "${assetCode}", new shares ${newShares}.`);
-        }
-        return warnings;
+    function updateStock(platform, assetCode, shareCountDecimal, acquiredCash, date) {
+        return platform.getStockHolding(assetCode).updateShares(shareCountDecimal, acquiredCash, date);
     }
 
-    function updateBond(platform, assetCode, shareCountDecimal) {
-        let warnings = [];
-        let newShares = platform.getBondHolding(assetCode).updateShares(shareCountDecimal);
-        if (newShares.lessThan(0)) {
-            warnings.push(`Platform "${platform.getName()}" has become negative in bond "${assetCode}", new shares ${newShares}.`);
-        }
-        return warnings;
+    function updateBond(platform, assetCode, shareCountDecimal, acquiredCash, date) {
+        return platform.getBondHolding(assetCode).updateShares(shareCountDecimal, acquiredCash, date);
     }
 
     function parseActionInputsByNames(item) {

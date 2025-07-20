@@ -84,10 +84,25 @@ class StockHolding {
         return this.#shares;
     }
 
-    updateShares(diff) {
+    /**
+     * Updates the number of shares and the history of this stock holding.
+     * @param diff Difference in shares, can be negative.
+     * @param acquiredCash Amount of cash spent or received for this change, can be negative.
+     * @param date Date of the change, must be a Date object.
+     */
+    updateShares(diff, acquiredCash, date) {
+        let warnings = [];
         validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+        if (!(date instanceof Date)) {
+            throw new Error('Not a Date');
+        }
         this.#shares = this.#shares.plus(diff);
-        return this.#shares;
+        this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
+        if (this.#shares.lessThan(0)) {
+            warnings.push(`Stock "${this.#code}" share count ${this.#shares} has become negative.`);
+        }
+        return warnings;
     }
 }
 
@@ -128,10 +143,20 @@ class IndexFundHolding {
         return this.#shares;
     }
 
-    updateShares(diff) {
+    updateShares(diff, acquiredCash, date) {
+        let warnings = [];
         validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+        if (!(date instanceof Date)) {
+            throw new Error('Not a Date');
+        }
         this.#shares = this.#shares.plus(diff);
-        return this.#shares;
+        this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
+
+        if (this.#shares.lessThan(0)) {
+            warnings.push(`Index fund "${this.#code}" share count ${this.#shares} has become negative.`);
+        }
+        return warnings;
     }
 }
 
@@ -169,10 +194,19 @@ class BondHolding {
         return this.#shares;
     }
 
-    updateShares(diff) {
+    updateShares(diff, acquiredCash, date) {
+        let warnings = [];
         validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+        if (!(date instanceof Date)) {
+            throw new Error('Not a Date');
+        }
         this.#shares = this.#shares.plus(diff);
-        return this.#shares;
+        this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
+        if (this.#shares.lessThan(0)) {
+            warnings.push(`Bond "${this.#code}" count ${this.#shares} has become negative.`);
+        }
+        return warnings;
     }
 }
 
