@@ -758,6 +758,12 @@ function processActionCheck(item, portfolioObj) {
     switch (item.assetType) {
         case "Cash":
             return processActionCheckCash(item, portfolioObj);
+        case "Stock":
+            return processActionCheckStock(item, portfolioObj);
+        case "Bond":
+            return processActionCheckBond(item, portfolioObj);
+        case "IndexFund":
+            return processActionCheckIndexFund(item, portfolioObj);
         default:
             throw new Error(`Processing of "Check" for asset type "${item.assetType}" is not implemented`);
     }
@@ -778,6 +784,66 @@ function processActionCheckCash(item, portfolioObj) {
     // Validate the amount
     if (!cashAmountDecimal.equals(item.totalValue)) {
         warnings.push(`Current cash amount for currency "${item.currency}" is ${cashAmountDecimal} but expected ${item.totalValue}`);
+    }
+
+    return warnings;
+}
+
+/*
+ * Process the "Check" action for asset type "Stock" of validating the current shares amount.
+ */
+function processActionCheckStock(item, portfolioObj) {
+    let warnings = [];
+
+    const platform = portfolioObj.getPlatform(item.platform);
+    const stockHolding = platform.getStockHolding(item.assetCode);
+
+    // Get the shares amount from the platform.
+    const sharesAmount = stockHolding.getCurrentShares();
+
+    // Validate the amount
+    if (!sharesAmount.equals(item.totalShares)) {
+        warnings.push(`Current shares amount for stock "${item.assetCode}" is ${sharesAmount} but expected ${item.totalShares}`);
+    }
+
+    return warnings;
+}
+
+/*
+ * Process the "Check" action for asset type "Bond" of validating the current shares amount.
+ */
+function processActionCheckBond(item, portfolioObj) {
+    let warnings = [];
+
+    const platform = portfolioObj.getPlatform(item.platform);
+    const bondHolding = platform.getBondHolding(item.assetCode);
+
+    // Get the shares amount from the platform.
+    const sharesAmount = bondHolding.getCurrentShares();
+
+    // Validate the amount
+    if (!sharesAmount.equals(item.totalShares)) {
+        warnings.push(`Current shares amount for bond "${item.assetCode}" is ${sharesAmount} but expected ${item.totalShares}`);
+    }
+
+    return warnings;
+}
+
+/*
+ * Process the "Check" action for asset type "IndexFund" of validating the current shares amount.
+ */
+function processActionCheckIndexFund(item, portfolioObj) {
+    let warnings = [];
+
+    const platform = portfolioObj.getPlatform(item.platform);
+    const indexFundHolding = platform.getIndexFundHolding(item.assetCode);
+
+    // Get the shares amount from the platform.
+    const sharesAmount = indexFundHolding.getCurrentShares();
+
+    // Validate the amount
+    if (!sharesAmount.equals(item.totalShares)) {
+        warnings.push(`Current shares amount for index fund "${item.assetCode}" is ${sharesAmount} but expected ${item.totalShares}`);
     }
 
     return warnings;
@@ -1049,6 +1115,10 @@ function getInputsByActionAndAsset(action, assetType) {
             switch (assetType) {
                 case "Cash":
                     return ["date", "notes", "action", "platform", "assetType", "currency", "totalValue"];
+                case "Stock":
+                case "Bond":
+                case "IndexFund":
+                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "totalShares"];
             }
             return undefined;
         case "NewPlatform":
