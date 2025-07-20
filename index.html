@@ -459,7 +459,7 @@
         }
         // Update the cash amount on the from platform
         const fromPlatform = portfolioObj.getPlatform(item.fromPlatform);
-        warnings = warnings.concat(fromPlatform.getCashHolding(item.currency).updateValue(item.totalValue.negated().plus(item.feeValue), item.date, "CASH_TRANSFER"));
+        warnings = warnings.concat(fromPlatform.getCashHolding(item.currency).updateValue(item.totalValue.plus(item.feeValue).negated(), item.date, "CASH_TRANSFER"));
         // Update the cash amount on the to platform
         const toPlatform = portfolioObj.getPlatform(item.toPlatform);
         warnings = warnings.concat(toPlatform.getCashHolding(item.currency).updateValue(item.totalValue, item.date, "CASH_TRANSFER"));
@@ -707,10 +707,14 @@
         if (item.totalValue.lessThanOrEqualTo(0)) {
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
+        // Validate that the fee value is non-negative
+        if (item.feeValue.lessThan(0)) {
+            throw new Error(`Fee value "${item.feeValue}" is not a non-negative amount`);
+        }
         // Validate the total value against unit value and share count
         warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Subtract the spent cash from the platform
-        const spentCash = item.totalValue.negated();
+        const spentCash = item.totalValue.plus(item.feeValue).negated();
         warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(spentCash, item.date, "BOND_BUY"));
         // Add the shares to the platform
         warnings = warnings.concat(platform.getBondHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY"));

@@ -217,9 +217,9 @@ function validateAssetCodeInput(assetCode) {
 
 function validateAssetNameInput(assetName) {
     let validateRegex = () => {
-        const assetNameRegex = /^[a-zA-Z0-9 .%]+$/;
+        const assetNameRegex = /^[a-zA-Z0-9 .%-]+$/;
         if (!assetNameRegex.test(assetName)) {
-            return new VRes(`Allowed symbols are (a-z A-Z 0-9 space . %)`);
+            return new VRes(`Allowed symbols are (a-z A-Z 0-9 space . % -)`);
         }
         return new VRes();
     };
@@ -313,4 +313,12 @@ function validateNotesInput(inputValue) {
         return new VRes(`Not a string`);
     }
     return new VRes();
+}
+
+function formatLocalDateForView(date) {
+    if (!(date instanceof Date)) {
+        throw new Error('Not a Date');
+    }
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${date.getFullYear()} ${months[date.getMonth()]} ${date.getDate()}`;
 }
