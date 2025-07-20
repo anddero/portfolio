@@ -3,7 +3,7 @@ class StockHolding {
     #friendlyName;
     #currency;
     #shares;
-    #history; // Array of SimpleAssetChangeRecord objects
+    #history; // Array of StockChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -37,8 +37,10 @@ class StockHolding {
      * @param diff Difference in shares, can be negative.
      * @param acquiredCash Amount of cash spent or received for this change, can be negative.
      * @param date Date of the change, must be a Date object.
+     * @param allowZeroDiff If true, diff must be zero, otherwise it must be non-zero.
+     * @param type Type of the change, must be a valid StockChangeType.
      */
-    updateShares(diff, acquiredCash, date, allowZeroDiff) {
+    updateShares(diff, acquiredCash, date, allowZeroDiff, type) {
         let warnings = [];
         if (typeof allowZeroDiff != 'boolean') {
             throw new Error('Not a Boolean');
@@ -53,7 +55,7 @@ class StockHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
-        this.#history.push(new SimpleAssetChangeRecord(date, diff, acquiredCash));
+        this.#history.push(new StockChangeRecord(date, diff, acquiredCash, type));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }

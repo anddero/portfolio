@@ -26,14 +26,14 @@ class CashHolding {
         return this.getCurrency();
     }
 
-    updateValue(diff, date) {
+    updateValue(diff, date, type) {
         let warnings = [];
         validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
         }
         this.#value = this.#value.plus(diff);
-        this.#history.push(new CashChangeRecord(date, diff));
+        this.#history.push(new CashChangeRecord(date, diff, type));
         if (this.#value.lessThan(0)) {
             warnings.push(`Cash "${this.#currency}" value ${this.#value} has become negative.`);
         }

@@ -3,7 +3,7 @@ class BondHolding {
     #friendlyName;
     #currency;
     #shares;
-    #history; // Array of SimpleAssetChangeRecord objects
+    #history; // Array of BondChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -32,7 +32,7 @@ class BondHolding {
         return this.#shares;
     }
 
-    updateShares(diff, acquiredCash, date, allowZeroDiff) {
+    updateShares(diff, acquiredCash, date, allowZeroDiff, type) {
         let warnings = [];
         if (typeof allowZeroDiff != 'boolean') {
             throw new Error('Not a Boolean');
@@ -47,7 +47,7 @@ class BondHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
-        this.#history.push(new SimpleAssetChangeRecord(date, diff, acquiredCash));
+        this.#history.push(new BondChangeRecord(date, diff, acquiredCash, type));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
