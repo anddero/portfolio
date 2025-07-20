@@ -36,6 +36,7 @@ const StockChangeType = Object.freeze({
     DIVIDEND: 'dividend',
     PUBLIC_TO_PRIVATE_SHARE_CONVERSION: 'public to private share conversion',
     UNSPECIFIC_ACCOUNTING_INCOME: 'unspecific accounting income',
+    STOCK_SPLIT: 'stock split',
 });
 
 const IndexFundChangeType = Object.freeze({

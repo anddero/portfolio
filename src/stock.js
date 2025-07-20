@@ -39,10 +39,14 @@ class StockHolding {
      * @param date Date of the change, must be a Date object.
      * @param allowZeroDiff If true, diff must be zero, otherwise it must be non-zero.
      * @param type Type of the change, must be a valid StockChangeType.
+     * @param allowZeroCash If true, acquiredCash must be zero, otherwise it must be non-zero.
      */
-    updateShares(diff, acquiredCash, date, allowZeroDiff, type) {
+    updateShares(diff, acquiredCash, date, allowZeroDiff, type, allowZeroCash) {
         let warnings = [];
         if (typeof allowZeroDiff != 'boolean') {
+            throw new Error('Not a Boolean');
+        }
+        if (typeof allowZeroCash != 'boolean') {
             throw new Error('Not a Boolean');
         }
         if (!allowZeroDiff) {
@@ -50,7 +54,11 @@ class StockHolding {
         } else {
             validateZeroDecimal(diff).getOrThrow('diff');
         }
-        validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+        if (!allowZeroCash) {
+            validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+        } else {
+            validateZeroDecimal(acquiredCash).getOrThrow('acquiredCash');
+        }
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
         }

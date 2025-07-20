@@ -18,9 +18,11 @@ const ALL_POSSIBLE_JSON_FIELDS = [
     "fromPlatform",
     "toPlatform",
     "fromCurrency",
-    "fromValue",
     "toCurrency",
+    "fromValue",
     "toValue",
+    "fromTotalShares",
+    "toTotalShares",
     "fromToCoefficient",
     "friendlyName",
     "notes"
@@ -36,7 +38,7 @@ const ACTIONS = Object.freeze({
     "Dividend": true,
     "CurrencyConversion": true,
     "PublicToPrivateShareConversion": true,
-    // "Other": true,
+    "Split": true,
     "Transfer": true,
     "UnspecificAccountingIncomeAction": true,
     "Sell": true,
@@ -285,6 +287,8 @@ function processAction(item, portfolioObj) {
             return processActionPublicToPrivateShareConversion(item, portfolioObj);
         case "Interest":
             return processActionInterest(item, portfolioObj);
+        case "Split":
+            return processActionStockSplit(item, portfolioObj);
         default:
             throw new Error(`Processing for "${item.action}" is not implemented`);
     }
@@ -308,7 +312,7 @@ function processActionPublicToPrivateShareConversion(item, portfolioObj) {
     // Subtract the fee value from the platform
     const cashChange = item.feeValue.negated();
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(cashChange, item.date, "STOCK_PUBLIC_TO_PRIVATE_SHARE_CONVERSION"));
-    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), cashChange, item.date, true, "PUBLIC_TO_PRIVATE_SHARE_CONVERSION"));
+    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), cashChange, item.date, true, "PUBLIC_TO_PRIVATE_SHARE_CONVERSION", false));
 
     return warnings;
 }
@@ -336,7 +340,7 @@ function processActionUnspecificAccountingIncomeAction(item, portfolioObj) {
     }
     // Add the received cash to the platform
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(item.totalValue, item.date, "STOCK_UNSPECIFIC_ACCOUNTING_INCOME"));
-    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.totalValue, item.date, true, "UNSPECIFIC_ACCOUNTING_INCOME"));
+    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.totalValue, item.date, true, "UNSPECIFIC_ACCOUNTING_INCOME", false));
 
     return warnings;
 }
@@ -436,7 +440,45 @@ function processActionDividend(item, portfolioObj) {
 
     // Update the cash amount on the platform
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(item.netValue, item.date, "STOCK_DIVIDEND"));
-    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "DIVIDEND"));
+    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "DIVIDEND", false));
+    return warnings;
+}
+
+function processActionStockSplit(item, portfolioObj) {
+    let warnings = [];
+
+    // Validate that the platform exists
+    if (!portfolioObj.hasPlatform(item.platform)) {
+        throw new Error(`Platform "${item.platform}" does not exist`);
+    }
+    const platform = portfolioObj.getPlatform(item.platform);
+    const stockHolding = platform.getStockHolding(item.assetCode);
+    if (stockHolding.getCurrency() !== item.currency) {
+        throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${stockHolding.getCurrency()}"`);
+    }
+    // Validate that the multiplier is positive
+    if (item.fromToCoefficient.lessThanOrEqualTo(0)) {
+        throw new Error(`Multiplier "${item.fromToCoefficient}" must be a positive number`);
+    }
+    // Validate that the fromTotalShares is positive
+    if (item.fromTotalShares.lessThanOrEqualTo(0)) {
+        throw new Error(`From total shares "${item.fromTotalShares}" is not a positive number`);
+    }
+    // Validate that the toTotalShares is positive
+    if (item.toTotalShares.lessThanOrEqualTo(0)) {
+        throw new Error(`To total shares "${item.toTotalShares}" is not a positive number`);
+    }
+    // Validate that the fromTotalShares is correct
+    const currentTotalShares = stockHolding.getCurrentShares();
+    if (!item.fromTotalShares.equals(currentTotalShares)) {
+        throw new Error(`Initial total shares "${item.fromTotalShares}" does not match the current total shares held "${currentTotalShares}"`);
+    }
+    // Validate that the toTotalShares is equal to the fromTotalShares multiplied by the multiplier
+    warnings = warnings.concat(validateTotalSharesSplitValue(item.fromTotalShares, item.fromToCoefficient, item.toTotalShares));
+
+    // Update
+    const updateDiff = item.toTotalShares.minus(item.fromTotalShares);
+    warnings = warnings.concat(stockHolding.updateShares(updateDiff, new Decimal(0), item.date, false, "STOCK_SPLIT", true));
     return warnings;
 }
 
@@ -553,7 +595,7 @@ function processActionBuyStock(item, portfolioObj) {
     const spentCash = item.totalValue.plus(item.feeValue).negated();
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(spentCash, item.date, "STOCK_BUY"));
     // Add the shares to the platform
-    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY"));
+    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY", false));
 
     return warnings;
 }
@@ -567,6 +609,15 @@ function validateTotalSharesTransactionValue(unitValue, totalShares, totalValue)
     }
     if (!totalValue.equals(expectedTotalValueDecimal)) {
         warnings.push(`Total value ${totalValue} does not match the product of share count and unit value, expected ${expectedTotalValueDecimal}.`);
+    }
+    return warnings;
+}
+
+function validateTotalSharesSplitValue(fromTotalShares, multiplier, toTotalShares) {
+    let warnings = [];
+    let expectedToShares = fromTotalShares.times(multiplier);
+    if (!toTotalShares.equals(expectedToShares)) {
+        warnings.push(`Total shares ${toTotalShares} does not match the product of initial total shares and multiplier, expected ${expectedToShares}.`);
     }
     return warnings;
 }
@@ -688,7 +739,7 @@ function processActionSellStock(item, portfolioObj) {
     const acquiredCash = item.totalValue;
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(acquiredCash, item.date, "STOCK_SELL"));
     // Subtract the sold shares from the platform
-    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL"));
+    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL", false));
 
     return warnings;
 }
@@ -1026,6 +1077,8 @@ function parseActionInputByName(inputName, inputValue) {
             case "fromValue":
             case "toValue":
             case "totalShares":
+            case "fromTotalShares":
+            case "toTotalShares":
                 return parseDecimalInput(inputValue, 4);
             case "feeValue":
                 return parseDecimalInput(inputValue, 2, true);
@@ -1131,6 +1184,12 @@ function getInputsByActionAndAsset(action, assetType) {
                     return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "friendlyName"];
                 case "Cash":
                     return ["date", "notes", "action", "platform", "assetType", "currency"];
+            }
+            return undefined;
+        case "Split":
+            switch (assetType) {
+                case "Stock":
+                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "fromTotalShares", "toTotalShares", "fromToCoefficient"];
             }
             return undefined;
         default:
