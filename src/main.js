@@ -47,7 +47,7 @@ const ASSET_TYPES = [
     "Cash",
     "Stock",
     "Bond",
-    "IndexFund" // TODO Would "MutualFund" be a better name?
+    "IndexFund"
 ];
 
 // STATE
@@ -291,7 +291,7 @@ function processAction(item, portfolioObj) {
 }
 
 function processActionPublicToPrivateShareConversion(item, portfolioObj) {
-    let warnings = []; // TODO Mark stock as private?
+    let warnings = [];
 
     if (!portfolioObj.hasPlatform(item.platform)) {
         throw new Error(`Platform "${item.platform}" does not exist`);
@@ -976,7 +976,7 @@ function parseActionInputsByNames(item) {
     }
     for (let key of Object.getOwnPropertyNames(item)) {
         if (!expectedFields.includes(key)) {
-            return new VRes(`Property "${key}" is unexpected`); // TODO Should be a warning?
+            return new VRes(`Property "${key}" is unexpected`);
         }
     }
 
