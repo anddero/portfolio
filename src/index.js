@@ -66,5 +66,9 @@ class IndexFundHolding {
     getCashChangeSum() {
         return getHistoryFieldSum(this.#history, 'valueChange');
     }
+
+    getHistoryTableView() {
+        return getSimpleAssetHistoryTableView(this.#history);
+    }
 }
 

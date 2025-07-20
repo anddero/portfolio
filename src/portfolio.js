@@ -117,4 +117,14 @@ class Portfolio {
             ])
         );
     }
+
+    getAssetHistoryTablesView() {
+        let tablesList = [];
+        this.#platforms.values().forEach(platform => platform.getAllHoldings().forEach(holding => tablesList.push({
+            title: `${holding.getFriendlyName()} (${holding.getCurrency()}, ${platform.getName()})`,
+            id: `${platform.getName()}-${holding.getCode()}`,
+            table: holding.getHistoryTableView()
+        })));
+        return new TablesView(tablesList);
+    }
 }

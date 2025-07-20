@@ -18,6 +18,14 @@ class CashHolding {
         return this.#value;
     }
 
+    getCode() {
+        return this.getCurrency();
+    }
+
+    getFriendlyName() {
+        return this.getCurrency();
+    }
+
     updateValue(diff, date) {
         let warnings = [];
         validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
@@ -40,6 +48,10 @@ class CashHolding {
 
     getCashChangeSum() {
         return getHistoryFieldSum(this.#history, 'valueChange');
+    }
+
+    getHistoryTableView() {
+        return getCashHistoryTableView(this.#history);
     }
 }
 
