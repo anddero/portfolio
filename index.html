@@ -329,7 +329,7 @@
             warnings.push(`Fee value "${item.feeValue}" is not a positive amount.`);
         }
         // Subtract the fee value from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.feeValue.negated()));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.feeValue.negated(), item.date));
 
         return warnings;
     }
@@ -356,7 +356,7 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Add the received cash to the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue, item.date));
 
         return warnings;
     }
@@ -380,10 +380,10 @@
         }
         // Update the cash amount on the from platform
         const fromPlatform = portfolioObj.getPlatform(item.fromPlatform);
-        warnings = warnings.concat(updateCash(fromPlatform, item.currency, item.totalValue.negated().plus(item.feeValue)));
+        warnings = warnings.concat(updateCash(fromPlatform, item.currency, item.totalValue.negated().plus(item.feeValue), item.date));
         // Update the cash amount on the to platform
         const toPlatform = portfolioObj.getPlatform(item.toPlatform);
-        warnings = warnings.concat(updateCash(toPlatform, item.currency, item.totalValue));
+        warnings = warnings.concat(updateCash(toPlatform, item.currency, item.totalValue, item.date));
         return warnings;
     }
 
@@ -411,8 +411,8 @@
         // Update the cash amounts on the platform
         const platform = portfolioObj.getPlatform(item.platform);
 
-        warnings = warnings.concat(updateCash(platform, item.fromCurrency, item.fromValue.negated()));
-        warnings = warnings.concat(updateCash(platform, item.toCurrency, item.toValue));
+        warnings = warnings.concat(updateCash(platform, item.fromCurrency, item.fromValue.negated(), item.date));
+        warnings = warnings.concat(updateCash(platform, item.toCurrency, item.toValue, item.date));
         return warnings;
     }
 
@@ -455,7 +455,7 @@
         }
 
         // Update the cash amount on the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.netValue));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.netValue, item.date));
         return warnings;
     }
 
@@ -498,7 +498,7 @@
         }
 
         // Update the cash amount on the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.netValue));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.netValue, item.date));
         return warnings;
     }
 
@@ -568,7 +568,7 @@
         }
         warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Subtract the spent cash from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.plus(item.feeValue).negated()));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.plus(item.feeValue).negated(), item.date));
         // Add the shares to the platform
         warnings = warnings.concat(updateStock(platform, item.assetCode, item.totalShares));
 
@@ -628,7 +628,7 @@
         // Validate the total value against unit value and share count
         warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Subtract the spent cash from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.negated()));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.negated(), item.date));
         // Add the shares to the platform
         warnings = warnings.concat(updateBond(platform, item.assetCode, item.totalShares));
 
@@ -653,7 +653,7 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Subtract the spent cash from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.negated()));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.negated(), item.date));
         // Add the index fund cash to the platform
         warnings = warnings.concat(updateIndexFund(platform, item.assetCode, item.totalValue));
         return warnings;
@@ -686,7 +686,7 @@
         // Validate the total value against unit value and share count
         warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Add the acquired cash to the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue, item.date));
         // Subtract the sold shares from the platform
         warnings = warnings.concat(updateStock(platform, item.assetCode, item.totalShares.negated()));
 
@@ -710,7 +710,7 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Add the acquired cash to the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue, item.date));
         // Subtract the index fund cash from the platform
         warnings = warnings.concat(updateIndexFund(platform, item.assetCode, item.totalValue.negated()));
         return warnings;
@@ -731,7 +731,7 @@
         }
         // Update the cash amount on the platform
         const platform = portfolioObj.getPlatform(item.platform);
-        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue));
+        warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue, item.date));
         return warnings;
     }
 
@@ -854,9 +854,9 @@
         return warnings;
     }
 
-    function updateCash(platform, currency, updateDecimal) {
+    function updateCash(platform, currency, updateDecimal, date) {
         let warnings = [];
-        let newAmt = platform.getCashHolding(currency).updateValue(updateDecimal);
+        let newAmt = platform.getCashHolding(currency).updateValue(updateDecimal, date);
         if (newAmt.lessThan(0)) {
             warnings.push(`Platform "${platform.getName()}" has become negative in currency "${currency}", new amount is ${newAmt}.`);
         }

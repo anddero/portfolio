@@ -1,11 +1,34 @@
+class SimpleChangeRecord {
+    #date; // Date object
+    #valueChange; // Decimal object, amount the asset changed
+    #cashChange; // Decimal object, amount the cash changed
+
+    constructor(date, valueChange, cashChange) {
+        if (!(date instanceof Date)) {
+            throw new Error('Not a Date');
+        }
+        if (!(valueChange instanceof Decimal)) {
+            throw new Error('Not a Decimal');
+        }
+        if (!(cashChange instanceof Decimal)) {
+            throw new Error('Not a Decimal');
+        }
+        this.#date = date;
+        this.#valueChange = valueChange;
+        this.#cashChange = cashChange;
+    }
+}
+
 class CashHolding {
     #currency;
     #value;
+    #history; // Array of SimpleChangeRecord objects. For cash holdings, the cashChange of the record is always equal to the valueChange.
 
     constructor(currency) {
         validateNonBlankString(currency).getOrThrow('currency');
         this.#currency = currency;
         this.#value = new Decimal(0);
+        this.#history = [];
     }
 
     getCurrency() {
@@ -16,9 +39,13 @@ class CashHolding {
         return this.#value;
     }
 
-    updateValue(diff) {
+    updateValue(diff, date) {
         validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        if (!(date instanceof Date)) {
+            throw new Error('Not a Date');
+        }
         this.#value = this.#value.plus(diff);
+        this.#history.push(new SimpleChangeRecord(date, diff, diff));
         return this.#value;
     }
 }
@@ -28,6 +55,7 @@ class StockHolding {
     #friendlyName;
     #currency;
     #shares;
+    #history; // Array of SimpleChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -37,6 +65,7 @@ class StockHolding {
         this.#friendlyName = friendlyName;
         this.#currency = currency;
         this.#shares = new Decimal(0);
+        this.#history = [];
     }
 
     getCode() {
@@ -70,6 +99,7 @@ class IndexFundHolding {
     #friendlyName;
     #currency;
     #shares;
+    #history; // Array of SimpleChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -79,6 +109,7 @@ class IndexFundHolding {
         this.#friendlyName = friendlyName;
         this.#currency = currency;
         this.#shares = new Decimal(0);
+        this.#history = [];
     }
 
     getCode() {
@@ -109,6 +140,7 @@ class BondHolding {
     #friendlyName;
     #currency;
     #shares;
+    #history; // Array of SimpleChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -118,6 +150,7 @@ class BondHolding {
         this.#friendlyName = friendlyName;
         this.#currency = currency;
         this.#shares = new Decimal(0);
+        this.#history = [];
     }
 
     getCode() {
