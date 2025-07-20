@@ -1156,3 +1156,8 @@ function openTab(evt, tabName) {
     document.getElementById(tabName).classList.add("active");
     evt.currentTarget.classList.add("active");
 }
+
+// Some thoughts (todos)
+// TODO Throws for internal issues, otherwise always VRes (both warnings and critical errors)
+// TODO Implement asset removal
+// TODO Add country for geographical distributing
