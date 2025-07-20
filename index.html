@@ -412,10 +412,7 @@
             throw new Error(`From-to coefficient "${item.fromToCoefficient}" must be a positive number`);
         }
         // Check that the conversion makes sense
-        const expectedToValue = item.fromValue.times(item.fromToCoefficient);
-        if (!item.toValue.equals(expectedToValue)) {
-            warnings.push(`To value ${item.toValue} does not match the product of from value ${item.fromValue} and from-to coefficient ${item.fromToCoefficient}, expected ${expectedToValue}.`);
-        }
+        warnings = warnings.concat(validateCurrencyConversionTransactionValue(item.fromToCoefficient, item.fromValue, item.toValue));
 
         // Update the cash amounts on the platform
         const platform = portfolioState.platforms.get(item.platform);
@@ -575,16 +572,38 @@
         if (item.totalValue.lessThanOrEqualTo(0)) {
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
-        // Validate the total value against unit value and share count
-        const expectedTotalValueDecimal = item.unitValue.times(item.totalShares);
-        if (!item.totalValue.equals(expectedTotalValueDecimal)) {
-            warnings.push(`Total value ${item.totalValue} does not match the product of share count and unit value, expected ${expectedTotalValueDecimal}.`);
-        }
+        warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Subtract the spent cash from the platform
         warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.plus(item.feeValue).negated()));
         // Add the shares to the platform
         warnings = warnings.concat(updateStock(platform, item.assetCode, item.totalShares));
 
+        return warnings;
+    }
+
+    function validateTotalSharesTransactionValue(unitValue, totalShares, totalValue) {
+        let warnings = [];
+        let expectedTotalValueDecimal = unitValue.times(totalShares);
+        // Check if expected value has more than 2 decimal places, if it does, round it to 2 decimal places
+        if (expectedTotalValueDecimal.decimalPlaces() > 2) {
+            expectedTotalValueDecimal = expectedTotalValueDecimal.toDecimalPlaces(2);
+        }
+        if (!totalValue.equals(expectedTotalValueDecimal)) {
+            warnings.push(`Total value ${totalValue} does not match the product of share count and unit value, expected ${expectedTotalValueDecimal}.`);
+        }
+        return warnings;
+    }
+
+    function validateCurrencyConversionTransactionValue(fromToCoefficient, fromValue, toValue) {
+        let warnings = [];
+        let expectedToValue = fromToCoefficient.times(fromValue);
+        // Check if expected value has more than 2 decimal places, if it does, round it to 2 decimal places
+        if (expectedToValue.decimalPlaces() > 2) {
+            expectedToValue = expectedToValue.toDecimalPlaces(2);
+        }
+        if (!toValue.equals(expectedToValue)) {
+            warnings.push(`To value ${toValue} does not match the product of from value ${fromValue} and from-to coefficient ${fromToCoefficient}, expected ${expectedToValue}.`);
+        }
         return warnings;
     }
 
@@ -613,10 +632,7 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Validate the total value against unit value and share count
-        const expectedTotalValueDecimal = item.unitValue.times(item.totalShares);
-        if (!item.totalValue.equals(expectedTotalValueDecimal)) {
-            warnings.push(`Total value ${item.totalValue} does not match the product of share count and unit value, expected ${expectedTotalValueDecimal}.`);
-        }
+        warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Subtract the spent cash from the platform
         warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue.negated()));
         // Add the shares to the platform
@@ -674,10 +690,7 @@
             warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
         }
         // Validate the total value against unit value and share count
-        const expectedTotalValueDecimal = item.unitValue.times(item.totalShares);
-        if (!item.totalValue.equals(expectedTotalValueDecimal)) {
-            warnings.push(`Total value ${item.totalValue} does not match the product of share count and unit value, expected ${expectedTotalValueDecimal}.`);
-        }
+        warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
         // Add the acquired cash to the platform
         warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue));
         // Subtract the sold shares from the platform
