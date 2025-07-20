@@ -170,6 +170,16 @@ function validateNonZeroConcreteDecimal(value) {
     return new VRes();
 }
 
+function validateZeroDecimal(value) {
+    if (!(value instanceof Decimal)) {
+        return new VRes('Not a Decimal');
+    }
+    if (!value.isZero()) {
+        return new VRes('Not a Zero');
+    }
+    return new VRes();
+}
+
 /**
  * Parse a decimal amount string into a Decimal object.
  * The string should be in format "1234.56", "-0.09", "0,00", "1,2", "49", etc.

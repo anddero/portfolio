@@ -90,9 +90,16 @@ class StockHolding {
      * @param acquiredCash Amount of cash spent or received for this change, can be negative.
      * @param date Date of the change, must be a Date object.
      */
-    updateShares(diff, acquiredCash, date) {
+    updateShares(diff, acquiredCash, date, allowZeroDiff) {
         let warnings = [];
-        validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        if (typeof allowZeroDiff != 'boolean') {
+            throw new Error('Not a Boolean');
+        }
+        if (!allowZeroDiff) {
+            validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        } else {
+            validateZeroDecimal(diff).getOrThrow('diff');
+        }
         validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
@@ -100,7 +107,7 @@ class StockHolding {
         this.#shares = this.#shares.plus(diff);
         this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
         if (this.#shares.lessThan(0)) {
-            warnings.push(`Stock "${this.#code}" share count ${this.#shares} has become negative.`);
+            warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
         return warnings;
     }
@@ -143,18 +150,24 @@ class IndexFundHolding {
         return this.#shares;
     }
 
-    updateShares(diff, acquiredCash, date) {
+    updateShares(diff, acquiredCash, date, allowZeroDiff) {
         let warnings = [];
-        validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        if (typeof allowZeroDiff != 'boolean') {
+            throw new Error('Not a Boolean');
+        }
+        if (!allowZeroDiff) {
+            validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        } else {
+            validateZeroDecimal(diff).getOrThrow('diff');
+        }
         validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
         this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
-
         if (this.#shares.lessThan(0)) {
-            warnings.push(`Index fund "${this.#code}" share count ${this.#shares} has become negative.`);
+            warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
         return warnings;
     }
@@ -194,9 +207,16 @@ class BondHolding {
         return this.#shares;
     }
 
-    updateShares(diff, acquiredCash, date) {
+    updateShares(diff, acquiredCash, date, allowZeroDiff) {
         let warnings = [];
-        validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        if (typeof allowZeroDiff != 'boolean') {
+            throw new Error('Not a Boolean');
+        }
+        if (!allowZeroDiff) {
+            validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
+        } else {
+            validateZeroDecimal(diff).getOrThrow('diff');
+        }
         validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
@@ -204,7 +224,7 @@ class BondHolding {
         this.#shares = this.#shares.plus(diff);
         this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
         if (this.#shares.lessThan(0)) {
-            warnings.push(`Bond "${this.#code}" count ${this.#shares} has become negative.`);
+            warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
         return warnings;
     }

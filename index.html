@@ -366,7 +366,9 @@
             warnings.push(`Fee value "${item.feeValue}" is not a positive amount.`);
         }
         // Subtract the fee value from the platform
-        warnings = warnings.concat(updateCash(platform, item.currency, item.feeValue.negated(), item.date));
+        const cashChange = item.feeValue.negated();
+        warnings = warnings.concat(updateCash(platform, item.currency, cashChange, item.date));
+        warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), cashChange, item.date, true));
 
         return warnings;
     }
@@ -394,6 +396,7 @@
         }
         // Add the received cash to the platform
         warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue, item.date));
+        warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.totalValue, item.date, true));
 
         return warnings;
     }
@@ -493,6 +496,7 @@
 
         // Update the cash amount on the platform
         warnings = warnings.concat(updateCash(platform, item.currency, item.netValue, item.date));
+        warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.netValue, item.date, true));
         return warnings;
     }
 
@@ -536,6 +540,7 @@
 
         // Update the cash amount on the platform
         warnings = warnings.concat(updateCash(platform, item.currency, item.netValue, item.date));
+        warnings = warnings.concat(bondHolding.updateShares(new Decimal(0), item.netValue, item.date, true));
         return warnings;
     }
 
@@ -608,7 +613,7 @@
         const spentCash = item.totalValue.plus(item.feeValue).negated();
         warnings = warnings.concat(updateCash(platform, item.currency, spentCash, item.date));
         // Add the shares to the platform
-        warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date));
+        warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false));
 
         return warnings;
     }
@@ -669,7 +674,7 @@
         const spentCash = item.totalValue.negated();
         warnings = warnings.concat(updateCash(platform, item.currency, spentCash, item.date));
         // Add the shares to the platform
-        warnings = warnings.concat(platform.getBondHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date));
+        warnings = warnings.concat(platform.getBondHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false));
 
         return warnings;
     }
@@ -695,7 +700,7 @@
         const spentCash = item.totalValue.negated();
         warnings = warnings.concat(updateCash(platform, item.currency, spentCash, item.date));
         // Add the index fund cash to the platform
-        warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalValue, spentCash, item.date));
+        warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalValue, spentCash, item.date, false));
         return warnings;
     }
 
@@ -729,7 +734,7 @@
         const acquiredCash = item.totalValue;
         warnings = warnings.concat(updateCash(platform, item.currency, acquiredCash, item.date));
         // Subtract the sold shares from the platform
-        warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date));
+        warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false));
 
         return warnings;
     }
@@ -754,7 +759,7 @@
         const acquiredCash = item.totalValue;
         warnings = warnings.concat(updateCash(platform, item.currency, acquiredCash, item.date));
         // Subtract the index fund cash from the platform
-        warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalValue.negated(), acquiredCash, item.date));
+        warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalValue.negated(), acquiredCash, item.date, false));
         return warnings;
     }
 
