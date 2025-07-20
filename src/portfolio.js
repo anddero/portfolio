@@ -316,6 +316,33 @@ class Platform {
         this.validateAssetNameUnique(bondHolding.getFriendlyName()).getOrThrow();
         this.#bondHoldings.set(bondHolding.getCode(), bondHolding);
     }
+
+    getCashHoldings() {
+        return Array.from(this.#cashHoldings.values());
+    }
+
+    getStockHoldings() {
+        return Array.from(this.#stockHoldings.values());
+    }
+
+    getIndexFundHoldings() {
+        return Array.from(this.#indexFundHoldings.values());
+    }
+
+    getBondHoldings() {
+        return Array.from(this.#bondHoldings.values());
+    }
+}
+
+class SummaryRecord {
+    constructor(platformName, assetType, assetFriendlyName, currency, count, assetCode) {
+        this.platformName = platformName;
+        this.assetType = assetType;
+        this.assetFriendlyName = assetFriendlyName;
+        this.currency = currency;
+        this.count = count;
+        this.assetCode = assetCode;
+    }
 }
 
 class Portfolio {
@@ -358,5 +385,52 @@ class Portfolio {
         }
         this.#latestDate = date;
         return new VRes();
+    }
+
+    getSummary() {
+        const summary = []; // Array of SummaryRecord objects
+        for (const platform of this.#platforms.values()) {
+            for (const cashHolding of platform.getCashHoldings()) {
+                summary.push(new SummaryRecord(
+                    platform.getName(),
+                    'Cash',
+                    cashHolding.getCurrency(),
+                    cashHolding.getCurrency(),
+                    cashHolding.getCurrentValue().toString(),
+                    cashHolding.getCurrency()
+                ));
+            }
+            for (const stockHolding of platform.getStockHoldings()) {
+                summary.push(new SummaryRecord(
+                    platform.getName(),
+                    'Stock',
+                    stockHolding.getFriendlyName(),
+                    stockHolding.getCurrency(),
+                    stockHolding.getCurrentShares().toString(),
+                    stockHolding.getCode()
+                ));
+            }
+            for (const indexFundHolding of platform.getIndexFundHoldings()) {
+                summary.push(new SummaryRecord(
+                    platform.getName(),
+                    'Index Fund',
+                    indexFundHolding.getFriendlyName(),
+                    indexFundHolding.getCurrency(),
+                    indexFundHolding.getCurrentShares().toString(),
+                    indexFundHolding.getCode()
+                ));
+            }
+            for (const bondHolding of platform.getBondHoldings()) {
+                summary.push(new SummaryRecord(
+                    platform.getName(),
+                    'Bond',
+                    bondHolding.getFriendlyName(),
+                    bondHolding.getCurrency(),
+                    bondHolding.getCurrentShares().toString(),
+                    bondHolding.getCode()
+                ));
+            }
+        }
+        return summary;
     }
 }

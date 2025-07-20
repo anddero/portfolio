@@ -24,6 +24,8 @@
     <p id="importLogInputMsg"></p>
 
     <h2>Log</h2>
+    <table id="summaryTable">
+    </table>
     <table id="logTable">
     </table>
 
@@ -125,6 +127,7 @@
             gPortfolioState = portfolioObj;
             setImportLogInputMsg(msg.text, msg.isError);
             reloadLogTable();
+            reloadSummaryTable();
         };
 
         const file = event.target.files[0];
@@ -159,6 +162,40 @@
         }
 
         return updateDom();
+    }
+
+    // Reload the summary table view, based on global portfolio object
+    function reloadSummaryTable() {
+        const summaryTable = document.getElementById("summaryTable");
+        summaryTable.innerHTML = `
+        <thead>
+        <tr>
+            <th>Index</th>
+            <th>Platform</th>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Count</th>
+            <th>Currency</th>
+            <th>Code</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+        `;
+
+        for (const [i, item] of gPortfolioState.getSummary().entries()) {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${i}</td>
+                <td>${item.platformName}</td>
+                <td>${item.assetType}</td>
+                <td>${item.assetFriendlyName}</td>
+                <td>${item.count}</td>
+                <td>${item.currency}</td>
+                <td>${item.assetCode}</td>
+            `;
+            summaryTable.getElementsByTagName("tbody")[0].appendChild(row);
+        }
     }
 
     // Reload the activity table view, based on global activity list and error map
