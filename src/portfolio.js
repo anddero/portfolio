@@ -1,7 +1,4 @@
 class CashChangeRecord {
-    #date; // Date object
-    #valueChange; // Decimal object, amount the cash changed
-
     constructor(date, valueChange) {
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
@@ -9,16 +6,12 @@ class CashChangeRecord {
         if (!(valueChange instanceof Decimal)) {
             throw new Error('Not a Decimal');
         }
-        this.#date = date;
-        this.#valueChange = valueChange;
+        this.date = date; // Date object
+        this.valueChange = valueChange; // Decimal object, amount the cash changed
     }
 }
 
 class SimpleAssetChangeRecord {
-    #date; // Date object
-    #valueChange; // Decimal object, amount the asset changed
-    #cashChange; // Decimal object, amount the cash changed
-
     constructor(date, valueChange, cashChange) {
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
@@ -29,9 +22,40 @@ class SimpleAssetChangeRecord {
         if (!(cashChange instanceof Decimal)) {
             throw new Error('Not a Decimal');
         }
-        this.#date = date;
-        this.#valueChange = valueChange;
-        this.#cashChange = cashChange;
+        this.date = date; // Date object
+        this.valueChange = valueChange; // Decimal object, amount the asset changed
+        this.cashChange = cashChange; // Decimal object, amount the cash changed
+    }
+}
+
+function getHistoryFieldSum(history, field) {
+    if (!Array.isArray(history)) {
+        throw new Error('Not an Array');
+    }
+    return history.reduce((sum, record) => sum.plus(record[field]), new Decimal(0));
+}
+
+function validateHistoryChronological(history) {
+    if (!Array.isArray(history)) {
+        throw new Error('Not an Array');
+    }
+    if (history.length === 0) {
+        throw new Error('History cannot be empty.');
+    }
+    for (let i = 1; i < history.length; i++) {
+        if (history[i].date < history[i - 1].date) {
+            throw new Error(`History is not in chronological order.`);
+        }
+    }
+}
+
+function validateHistoryFieldSum(history, field, expectedSum) {
+    const total = getHistoryFieldSum(history, field);
+    if (history.length === 0) {
+        throw new Error('History cannot be empty.');
+    }
+    if (!total.equals(expectedSum)) {
+        throw new Error(`History "${field}" sum ${total} does not match expected sum ${expectedSum}.`);
     }
 }
 
@@ -67,6 +91,16 @@ class CashHolding {
             warnings.push(`Cash "${this.#currency}" value ${this.#value} has become negative.`);
         }
         return warnings;
+    }
+
+    // Run all sorts of validations on the cash holding.
+    validate() {
+        validateHistoryChronological(this.#history);
+        validateHistoryFieldSum(this.#history, 'valueChange', this.#value);
+    }
+
+    getCashChangeSum() {
+        return getHistoryFieldSum(this.#history, 'valueChange');
     }
 }
 
@@ -131,6 +165,16 @@ class StockHolding {
         }
         return warnings;
     }
+
+    // Run all sorts of validations on the cash holding.
+    validate() {
+        validateHistoryChronological(this.#history);
+        validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
+    }
+
+    getCashChangeSum() {
+        return getHistoryFieldSum(this.#history, 'valueChange');
+    }
 }
 
 /**
@@ -191,6 +235,16 @@ class IndexFundHolding {
         }
         return warnings;
     }
+
+    // Run all sorts of validations on the cash holding.
+    validate() {
+        validateHistoryChronological(this.#history);
+        validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
+    }
+
+    getCashChangeSum() {
+        return getHistoryFieldSum(this.#history, 'valueChange');
+    }
 }
 
 class BondHolding {
@@ -247,6 +301,16 @@ class BondHolding {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
         return warnings;
+    }
+
+    // Run all sorts of validations on the cash holding.
+    validate() {
+        validateHistoryChronological(this.#history);
+        validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
+    }
+
+    getCashChangeSum() {
+        return getHistoryFieldSum(this.#history, 'valueChange');
     }
 }
 
@@ -406,6 +470,17 @@ class Platform {
     getBondHoldings() {
         return Array.from(this.#bondHoldings.values());
     }
+
+    getAllHoldings() {
+        return this.getCashHoldings()
+            .concat(this.getStockHoldings())
+            .concat(this.getIndexFundHoldings())
+            .concat(this.getBondHoldings());
+    }
+
+    validate() {
+        this.getAllHoldings().forEach(holding => holding.validate());
+    }
 }
 
 class SummaryRecord {
@@ -459,6 +534,10 @@ class Portfolio {
         }
         this.#latestDate = date;
         return new VRes();
+    }
+
+    validate() {
+        this.#platforms.values().forEach(platform => platform.validate());
     }
 
     getSummary() {
