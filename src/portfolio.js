@@ -228,3 +228,32 @@ class Platform {
         this.bondHoldings.set(bondHolding.code, bondHolding);
     }
 }
+
+class Portfolio {
+    constructor() {
+        this.platforms = new Map();
+        this.latestDate = undefined;
+    }
+
+    hasPlatform(name) {
+        validateNonBlankString(name).getOrThrow('name');
+        return this.platforms.has(name);
+    }
+
+    getPlatform(name) {
+        if (!this.hasPlatform(name)) {
+            throw new Error(`No platform with name ${name}`);
+        }
+        return this.platforms.get(name);
+    }
+
+    addPlatform(platform) {
+        if (!(platform instanceof Platform)) {
+            throw new Error('Not a Platform');
+        }
+        if (this.hasPlatform(platform.name)) {
+            throw new Error(`Platform ${platform.name} exists`);
+        }
+        this.platforms.set(platform.name, platform);
+    }
+}
