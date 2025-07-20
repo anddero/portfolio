@@ -640,11 +640,21 @@ function processActionBuyIndexFund(item, portfolioObj) {
     if (item.totalValue.lessThanOrEqualTo(0)) {
         warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
     }
+    // Validate that the share count is positive
+    if (item.totalShares.lessThanOrEqualTo(0)) {
+        throw new Error(`Share count "${item.totalShares}" is not a positive number`);
+    }
+    // Validate that the unit value is positive
+    if (item.unitValue.lessThanOrEqualTo(0)) {
+        throw new Error(`Unit value "${item.unitValue}" is not a positive amount.`);
+    }
+    // Validate the total value against unit value and share count
+    warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
     // Subtract the spent cash from the platform
     const spentCash = item.totalValue.negated();
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(spentCash, item.date, "INDEX_FUND_BUY"));
     // Add the index fund cash to the platform
-    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalValue, spentCash, item.date, false, "BUY"));
+    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY"));
     return warnings;
 }
 
@@ -699,11 +709,21 @@ function processActionSellIndexFund(item, portfolioObj) {
     if (item.totalValue.lessThanOrEqualTo(0)) {
         warnings.push(`Total value "${item.totalValue}" is not a positive amount.`);
     }
+    // Validate that the share count is positive
+    if (item.totalShares.lessThanOrEqualTo(0)) {
+        throw new Error(`Share count "${item.totalShares}" is not a positive number`);
+    }
+    // Validate that the unit value is positive
+    if (item.unitValue.lessThanOrEqualTo(0)) {
+        throw new Error(`Unit value "${item.unitValue}" is not a positive amount.`);
+    }
+    // Validate the total value against unit value and share count
+    warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
     // Add the acquired cash to the platform
     const acquiredCash = item.totalValue;
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(acquiredCash, item.date, "INDEX_FUND_SELL"));
     // Subtract the index fund cash from the platform
-    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalValue.negated(), acquiredCash, item.date, false, "SELL"));
+    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL"));
     return warnings;
 }
 
@@ -940,7 +960,7 @@ function parseActionInputByName(inputName, inputValue) {
             case "fromValue":
             case "toValue":
             case "totalShares":
-                return parseDecimalInput(inputValue, 2);
+                return parseDecimalInput(inputValue, 4);
             case "feeValue":
                 return parseDecimalInput(inputValue, 2, true);
             case "fromToCoefficient":
@@ -1009,15 +1029,14 @@ function getInputsByActionAndAsset(action, assetType) {
                 case "Bond":
                     return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalShares", "unitValue", "totalValue", "feeValue"];
                 case "IndexFund":
-                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalValue"];
+                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalShares", "unitValue", "totalValue"];
             }
             return undefined;
         case "Sell":
             switch (assetType) {
                 case "Stock":
-                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalShares", "unitValue", "totalValue"];
                 case "IndexFund":
-                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalValue"];
+                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalShares", "unitValue", "totalValue"];
             }
             return undefined;
         case "Deposit":
