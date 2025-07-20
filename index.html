@@ -115,14 +115,14 @@
         // New state, initially cleared
         let activityList = [];
         let activityErrorMap = new Map();
-        let portfolioState = undefined;
+        let portfolioObj = undefined;
         let msg = { "text": "Something went wrong.", "isError": true };
 
         // Call this on every return point to make sure global state and DOM gets updated with new state
         let updateDom = () => {
             gActivityList = activityList;
             gActivityErrorMap = activityErrorMap;
-            gPortfolioState = portfolioState;
+            gPortfolioState = portfolioObj;
             setImportLogInputMsg(msg.text, msg.isError);
             reloadLogTable();
         };
@@ -137,7 +137,7 @@
         try {
             activityList = await readJsonFile(file); // await very much needed here as readJsonFile cannot be made sync function
             let criticalErrorOccurred;
-            [portfolioState, activityErrorMap, criticalErrorOccurred] = processActivityList(activityList);
+            [portfolioObj, activityErrorMap, criticalErrorOccurred] = processActivityList(activityList);
             if (activityErrorMap.size > 0)
             {
                 if (criticalErrorOccurred) {
@@ -251,13 +251,13 @@
             throw new Error("Activity JSON is empty.");
         }
 
-        let portfolioState = new Portfolio();
+        let portfolioObj = new Portfolio();
         let activityErrorMap = new Map();
 
         let criticalErrorOccurred = false;
         for (const [i, item] of activityFileJson.entries()) {
             try {
-                let warnings = processAction(item, portfolioState);
+                let warnings = processAction(item, portfolioObj);
                 if (warnings.length > 0) {
                     activityErrorMap.set(i, `You have ${warnings.length} warning(s): ${warnings.join(' ')}`);
                 }
@@ -268,7 +268,7 @@
             }
         }
 
-        return [portfolioState, activityErrorMap, criticalErrorOccurred];
+        return [portfolioObj, activityErrorMap, criticalErrorOccurred];
     }
 
     /*
@@ -276,54 +276,54 @@
      * Return a list of warnings (maybe empty).
      * Throw in case of a critical error in which case the activity item may not be correctly processed.
      */
-    function processAction(item, portfolioState) {
+    function processAction(item, portfolioObj) {
         item = parseActionInputsByNames(item).getOrThrow('Problem parsing input');
 
         // Validate date order
-        if (portfolioState.latestDate && item.date < portfolioState.latestDate) { // TODO kmere No direct access
+        if (portfolioObj.latestDate && item.date < portfolioObj.latestDate) { // TODO kmere No direct access
             throw new Error(`Problem parsing input: Date is earlier than the previous action's date.`);
         }
-        portfolioState.latestDate = item.date;
+        portfolioObj.latestDate = item.date;
 
         console.log(item);
         // Process the action with a dedicated function
         switch (item.action) {
             case "NewPlatform":
-                return processActionNewPlatform(item, portfolioState);
+                return processActionNewPlatform(item, portfolioObj);
             case "NewAsset":
-                return processActionNewAsset(item, portfolioState);
+                return processActionNewAsset(item, portfolioObj);
             case "Check":
-                return processActionCheck(item, portfolioState);
+                return processActionCheck(item, portfolioObj);
             case "Deposit":
-                return processActionDeposit(item, portfolioState);
+                return processActionDeposit(item, portfolioObj);
             case "Buy":
-                return processActionBuy(item, portfolioState);
+                return processActionBuy(item, portfolioObj);
             case "Sell":
-                return processActionSell(item, portfolioState);
+                return processActionSell(item, portfolioObj);
             case "Dividend":
-                return processActionDividend(item, portfolioState);
+                return processActionDividend(item, portfolioObj);
             case "CurrencyConversion":
-                return processActionCurrencyConversion(item, portfolioState);
+                return processActionCurrencyConversion(item, portfolioObj);
             case "Transfer":
-                return processActionTransfer(item, portfolioState);
+                return processActionTransfer(item, portfolioObj);
             case "UnspecificAccountingIncomeAction":
-                return processActionUnspecificAccountingIncomeAction(item, portfolioState);
+                return processActionUnspecificAccountingIncomeAction(item, portfolioObj);
             case "PublicToPrivateShareConversion":
-                return processActionPublicToPrivateShareConversion(item, portfolioState);
+                return processActionPublicToPrivateShareConversion(item, portfolioObj);
             case "Interest":
-                return processActionInterest(item, portfolioState);
+                return processActionInterest(item, portfolioObj);
             default:
                 throw new Error(`Processing for "${item.action}" is not implemented`);
         }
     }
 
-    function processActionPublicToPrivateShareConversion(item, portfolioState) {
+    function processActionPublicToPrivateShareConversion(item, portfolioObj) {
         let warnings = []; // TODO Mark stock as private?
 
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const stockHolding = platform.getStockHolding(item.assetCode);
         if (stockHolding.getCurrency() !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${stockHolding.getCurrency()}"`);
@@ -345,13 +345,13 @@
      * An example of such an event could be nominal value reduction - important for the company for accounting purposes,
      * but doesn't affect the held assets directly.
      */
-    function processActionUnspecificAccountingIncomeAction(item, portfolioState) {
+    function processActionUnspecificAccountingIncomeAction(item, portfolioObj) {
         let warnings = [];
 
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const stockHolding = platform.getStockHolding(item.assetCode);
         if (stockHolding.getCurrency() !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${stockHolding.getCurrency()}"`);
@@ -365,13 +365,13 @@
         return warnings;
     }
 
-    function processActionTransfer(item, portfolioState) {
+    function processActionTransfer(item, portfolioObj) {
         let warnings = [];
 
-        if (!portfolioState.hasPlatform(item.fromPlatform)) {
+        if (!portfolioObj.hasPlatform(item.fromPlatform)) {
             throw new Error(`From platform "${item.fromPlatform}" does not exist`);
         }
-        if (!portfolioState.hasPlatform(item.toPlatform)) {
+        if (!portfolioObj.hasPlatform(item.toPlatform)) {
             throw new Error(`To platform "${item.toPlatform}" does not exist`);
         }
         // Validate that the transferred amount is positive
@@ -383,19 +383,19 @@
             throw new Error(`Fee value "${item.feeValue}" is not a non-negative amount`);
         }
         // Update the cash amount on the from platform
-        const fromPlatform = portfolioState.getPlatform(item.fromPlatform);
+        const fromPlatform = portfolioObj.getPlatform(item.fromPlatform);
         warnings = warnings.concat(updateCash(fromPlatform, item.currency, item.totalValue.negated().plus(item.feeValue)));
         // Update the cash amount on the to platform
-        const toPlatform = portfolioState.getPlatform(item.toPlatform);
+        const toPlatform = portfolioObj.getPlatform(item.toPlatform);
         warnings = warnings.concat(updateCash(toPlatform, item.currency, item.totalValue));
         return warnings;
     }
 
-    function processActionCurrencyConversion(item, portfolioState) {
+    function processActionCurrencyConversion(item, portfolioObj) {
         let warnings = [];
 
         // Validate that the platform exists
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
         // Validate that the from value is positive
@@ -413,21 +413,21 @@
         warnings = warnings.concat(validateCurrencyConversionTransactionValue(item.fromToCoefficient, item.fromValue, item.toValue));
 
         // Update the cash amounts on the platform
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
 
         warnings = warnings.concat(updateCash(platform, item.fromCurrency, item.fromValue.negated()));
         warnings = warnings.concat(updateCash(platform, item.toCurrency, item.toValue));
         return warnings;
     }
 
-    function processActionDividend(item, portfolioState) {
+    function processActionDividend(item, portfolioObj) {
         let warnings = [];
 
         // Validate that the platform exists
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const stockHolding = platform.getStockHolding(item.assetCode);
         if (stockHolding.getCurrency() !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${stockHolding.getCurrency()}"`);
@@ -463,14 +463,14 @@
         return warnings;
     }
 
-    function processActionInterest(item, portfolioState) {
+    function processActionInterest(item, portfolioObj) {
         let warnings = [];
 
         // Validate that the platform exists
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const bondHolding = platform.getBondHolding(item.assetCode);
         if (bondHolding.getCurrency() !== item.currency) {
             throw new Error(`Currency "${item.currency}" does not match the existing asset currency "${bondHolding.getCurrency()}"`);
@@ -509,19 +509,19 @@
     /*
      * Process the "Buy" action of purchasing an asset on a platform.
      */
-    function processActionBuy(item, portfolioState) {
+    function processActionBuy(item, portfolioObj) {
         // Validate that the platform exists
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
         // Process the asset with a dedicated function
         switch (item.assetType) {
             case "Stock":
-                return processActionBuyStock(item, portfolioState);
+                return processActionBuyStock(item, portfolioObj);
             case "IndexFund":
-                return processActionBuyIndexFund(item, portfolioState);
+                return processActionBuyIndexFund(item, portfolioObj);
             case "Bond":
-                return processActionBuyBond(item, portfolioState);
+                return processActionBuyBond(item, portfolioObj);
             default:
                 throw new Error(`Processing of "Buy" for asset type "${item.assetType}" is not implemented`);
         }
@@ -530,17 +530,17 @@
     /*
      * Process the "Sell" action of purchasing an asset on a platform.
      */
-    function processActionSell(item, portfolioState) {
+    function processActionSell(item, portfolioObj) {
         // Validate that the platform exists
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
         // Process the asset with a dedicated function
         switch (item.assetType) {
             case "Stock":
-                return processActionSellStock(item, portfolioState);
+                return processActionSellStock(item, portfolioObj);
             case "IndexFund":
-                return processActionSellIndexFund(item, portfolioState);
+                return processActionSellIndexFund(item, portfolioObj);
             default:
                 throw new Error(`Processing of "Sell" for asset type "${item.assetType}" is not implemented`);
         }
@@ -549,10 +549,10 @@
     /*
      * Process the "Buy" action for asset type "Stock" of purchasing stock.
      */
-    function processActionBuyStock(item, portfolioState) {
+    function processActionBuyStock(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const stockHolding = platform.getStockHolding(item.assetCode);
         // Validate that the share count is positive
         if (item.totalShares.lessThan(0)) {
@@ -608,10 +608,10 @@
     /*
      * Process the "Buy" action for asset type "Bond" of purchasing a bond.
      */
-    function processActionBuyBond(item, portfolioState) {
+    function processActionBuyBond(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const bondHolding = platform.getBondHolding(item.assetCode);
         // Validate that the share count is positive
         if (item.totalShares.lessThan(0)) {
@@ -642,10 +642,10 @@
     /*
      * Process the "Buy" action for asset type "IndexFund" of purchasing index fund.
      */
-    function processActionBuyIndexFund(item, portfolioState) {
+    function processActionBuyIndexFund(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const indexFundHolding = platform.getIndexFundHolding(item.assetCode);
 
         // Validate that the currency matches the existing asset currency
@@ -666,10 +666,10 @@
     /*
      * Process the "Sell" action for asset type "Stock".
      */
-    function processActionSellStock(item, portfolioState) {
+    function processActionSellStock(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const stockHolding = platform.getStockHolding(item.assetCode);
         // Validate that the share count is positive
         if (item.totalShares.lessThan(0)) {
@@ -700,10 +700,10 @@
     /*
      * Process the "Sell" action for asset type "IndexFund".
      */
-    function processActionSellIndexFund(item, portfolioState) {
+    function processActionSellIndexFund(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const indexFundHolding = platform.getIndexFundHolding(item.assetCode);
         // Validate that the currency matches the existing asset currency
         if (indexFundHolding.getCurrency() !== item.currency) {
@@ -723,10 +723,10 @@
     /*
      * Process the "Deposit" action of adding cash to a platform.
      */
-    function processActionDeposit(item, portfolioState) {
+    function processActionDeposit(item, portfolioObj) {
         let warnings = [];
 
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
         // Validate that the deposited amount is positive
@@ -734,7 +734,7 @@
             throw new Error(`Total value "${item.totalValue}" is not a positive amount`);
         }
         // Update the cash amount on the platform
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         warnings = warnings.concat(updateCash(platform, item.currency, item.totalValue));
         return warnings;
     }
@@ -742,15 +742,15 @@
     /*
      * Process the "Check" action of validating an asset's current value.
      */
-    function processActionCheck(item, portfolioState) {
+    function processActionCheck(item, portfolioObj) {
         // Validate that the platform exists
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
         // Process the asset with a dedicated function
         switch (item.assetType) {
             case "Cash":
-                return processActionCheckCash(item, portfolioState);
+                return processActionCheckCash(item, portfolioObj);
             default:
                 throw new Error(`Processing of "Check" for asset type "${item.assetType}" is not implemented`);
         }
@@ -759,10 +759,10 @@
     /*
      * Process the "Check" action for asset type "Cash" of validating the current cash amount.
      */
-    function processActionCheckCash(item, portfolioState) {
+    function processActionCheckCash(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         const cashHolding = platform.getCashHolding(item.currency);
 
         // Get the cash amount from the platform.
@@ -779,10 +779,10 @@
     /*
      * Process the "NewPlatform" action of introducing a new investment platform to the portfolio.
      */
-    function processActionNewPlatform(item, portfolioState) {
+    function processActionNewPlatform(item, portfolioObj) {
         let warnings = [];
 
-        portfolioState.addPlatform(new Platform(item.platform));
+        portfolioObj.addPlatform(new Platform(item.platform));
 
         return warnings;
     }
@@ -790,21 +790,21 @@
     /*
      * Process the "NewAsset" action of introducing a new asset to the portfolio.
      */
-    function processActionNewAsset(item, portfolioState) {
+    function processActionNewAsset(item, portfolioObj) {
         // Validate that the platform exists
-        if (!portfolioState.hasPlatform(item.platform)) {
+        if (!portfolioObj.hasPlatform(item.platform)) {
             throw new Error(`Platform "${item.platform}" does not exist`);
         }
         // Different function per asset type
         switch (item.assetType) {
             case "Stock":
-                return processActionNewAssetStock(item, portfolioState);
+                return processActionNewAssetStock(item, portfolioObj);
             case "IndexFund":
-                return processActionNewAssetIndexFund(item, portfolioState);
+                return processActionNewAssetIndexFund(item, portfolioObj);
             case "Cash":
-                return processActionNewAssetCash(item, portfolioState);
+                return processActionNewAssetCash(item, portfolioObj);
             case "Bond":
-                return processActionNewAssetBond(item, portfolioState);
+                return processActionNewAssetBond(item, portfolioObj);
             default:
                 throw new Error(`Processing of "NewAsset" for asset type "${item.assetType}" is not implemented`);
         }
@@ -813,10 +813,10 @@
     /*
      * Process the "NewAsset" action of introducing a new asset of type "Stock" to the portfolio.
      */
-    function processActionNewAssetStock(item, portfolioState) {
+    function processActionNewAssetStock(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         platform.addStockHolding(new StockHolding(item.assetCode, item.friendlyName, item.currency));
 
         return warnings;
@@ -825,10 +825,10 @@
     /*
      * Process the "NewAsset" action of introducing a new asset of type "Bond" to the portfolio.
      */
-    function processActionNewAssetBond(item, portfolioState) {
+    function processActionNewAssetBond(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         platform.addBondHolding(new BondHolding(item.assetCode, item.friendlyName, item.currency));
 
         return warnings;
@@ -837,10 +837,10 @@
     /*
      * Process the "NewAsset" action of introducing a new asset of type "IndexFund" to the portfolio.
      */
-    function processActionNewAssetIndexFund(item, portfolioState) {
+    function processActionNewAssetIndexFund(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         platform.addIndexFundHolding(new IndexFundHolding(item.assetCode, item.friendlyName, item.currency));
 
         return warnings;
@@ -849,10 +849,10 @@
     /*
      * Process the "NewAsset" action of introducing a new asset of type "Cash" to the portfolio.
      */
-    function processActionNewAssetCash(item, portfolioState) {
+    function processActionNewAssetCash(item, portfolioObj) {
         let warnings = [];
 
-        const platform = portfolioState.getPlatform(item.platform);
+        const platform = portfolioObj.getPlatform(item.platform);
         platform.addCashHolding(new CashHolding(item.currency));
 
         return warnings;
