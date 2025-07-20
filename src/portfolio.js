@@ -1,4 +1,20 @@
-class SimpleChangeRecord {
+class CashChangeRecord {
+    #date; // Date object
+    #valueChange; // Decimal object, amount the cash changed
+
+    constructor(date, valueChange) {
+        if (!(date instanceof Date)) {
+            throw new Error('Not a Date');
+        }
+        if (!(valueChange instanceof Decimal)) {
+            throw new Error('Not a Decimal');
+        }
+        this.#date = date;
+        this.#valueChange = valueChange;
+    }
+}
+
+class SimpleAssetChangeRecord {
     #date; // Date object
     #valueChange; // Decimal object, amount the asset changed
     #cashChange; // Decimal object, amount the cash changed
@@ -22,7 +38,7 @@ class SimpleChangeRecord {
 class CashHolding {
     #currency;
     #value;
-    #history; // Array of SimpleChangeRecord objects. For cash holdings, the cashChange of the record is always equal to the valueChange.
+    #history; // Array of CashChangeRecord objects.
 
     constructor(currency) {
         validateNonBlankString(currency).getOrThrow('currency');
@@ -46,7 +62,7 @@ class CashHolding {
             throw new Error('Not a Date');
         }
         this.#value = this.#value.plus(diff);
-        this.#history.push(new SimpleChangeRecord(date, diff, diff));
+        this.#history.push(new CashChangeRecord(date, diff));
         if (this.#value.lessThan(0)) {
             warnings.push(`Cash "${this.#currency}" value ${this.#value} has become negative.`);
         }
@@ -59,7 +75,7 @@ class StockHolding {
     #friendlyName;
     #currency;
     #shares;
-    #history; // Array of SimpleChangeRecord objects
+    #history; // Array of SimpleAssetChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -109,7 +125,7 @@ class StockHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
-        this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
+        this.#history.push(new SimpleAssetChangeRecord(date, diff, acquiredCash));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
@@ -125,7 +141,7 @@ class IndexFundHolding {
     #friendlyName;
     #currency;
     #shares;
-    #history; // Array of SimpleChangeRecord objects
+    #history; // Array of SimpleAssetChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -169,7 +185,7 @@ class IndexFundHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
-        this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
+        this.#history.push(new SimpleAssetChangeRecord(date, diff, acquiredCash));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
@@ -182,7 +198,7 @@ class BondHolding {
     #friendlyName;
     #currency;
     #shares;
-    #history; // Array of SimpleChangeRecord objects
+    #history; // Array of SimpleAssetChangeRecord objects
 
     constructor(code, friendlyName, currency) {
         validateNonBlankString(code).getOrThrow('code');
@@ -226,7 +242,7 @@ class BondHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
-        this.#history.push(new SimpleChangeRecord(date, diff, acquiredCash));
+        this.#history.push(new SimpleAssetChangeRecord(date, diff, acquiredCash));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
