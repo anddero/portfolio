@@ -858,7 +858,7 @@
         let warnings = [];
         let newAmt = platform.getCashHolding(currency).updateValue(updateDecimal);
         if (newAmt.lessThan(0)) {
-            warnings.push(`Platform "${platform.name}" has become negative in currency "${currency}", new amount is ${newAmt}.`);
+            warnings.push(`Platform "${platform.getName()}" has become negative in currency "${currency}", new amount is ${newAmt}.`);
         }
         return warnings;
     }
@@ -867,7 +867,7 @@
         let warnings = [];
         let newAmt = platform.getIndexFundHolding(assetCode).updateShares(updateDecimal);
         if (newAmt.lessThan(0)) {
-            warnings.push(`Platform "${platform.name}" has become negative in index fund "${assetCode}", current amount is ${newAmt}.`);
+            warnings.push(`Platform "${platform.getName()}" has become negative in index fund "${assetCode}", current amount is ${newAmt}.`);
         }
         return warnings;
     }
@@ -876,7 +876,7 @@
         let warnings = [];
         let newShares = platform.getStockHolding(assetCode).updateShares(shareCountDecimal);
         if (newShares.lessThan(0)) {
-            warnings.push(`Platform "${platform.name}" has become negative in stock "${assetCode}", new shares ${newShares}.`);
+            warnings.push(`Platform "${platform.getName()}" has become negative in stock "${assetCode}", new shares ${newShares}.`);
         }
         return warnings;
     }
@@ -885,7 +885,7 @@
         let warnings = [];
         let newShares = platform.getBondHolding(assetCode).updateShares(shareCountDecimal);
         if (newShares.lessThan(0)) {
-            warnings.push(`Platform "${platform.name}" has become negative in bond "${assetCode}", new shares ${newShares}.`);
+            warnings.push(`Platform "${platform.getName()}" has become negative in bond "${assetCode}", new shares ${newShares}.`);
         }
         return warnings;
     }
