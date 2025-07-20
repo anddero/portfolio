@@ -8,6 +8,43 @@
 
     <!-- CSS Section -->
     <style>
+        /* Tab Navigation Styles */
+        .tab-nav {
+            display: flex;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            background-color: inherit;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 20px;
+            transition: 0.3s;
+            font-size: 16px;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button:hover {
+            background-color: #ddd;
+        }
+
+        .tab-button.active {
+            background-color: #ccc;
+            border-bottom-color: #007cba;
+        }
+
+        /* Tab Content Styles */
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 
@@ -15,24 +52,34 @@
 
 <!-- Header Section -->
 <header>
+    <div class="tab-nav">
+        <button class="tab-button active" onclick="openTab(event, 'data-management')">Data Management</button>
+        <button class="tab-button" onclick="openTab(event, 'portfolio-view')">Portfolio View</button>
+    </div>
 </header>
 
 <!-- Main Content Section -->
 <main>
+    <!-- Data Management Tab -->
+    <div id="data-management" class="tab-content active">
+        <input type="file" id="importLogInput" name="Import">
+        <p id="importLogInputMsg"></p>
 
-    <input type="file" id="importLogInput" name="Import">
-    <p id="importLogInputMsg"></p>
+        <h2>Log</h2>
+        <table id="logTable">
+        </table>
 
-    <h2>Log</h2>
-    <table id="summaryTable">
-    </table>
-    <div id="assetSummaryContainer">
+        <button id="exportLogButton">Export</button>
     </div>
-    <table id="logTable">
-    </table>
 
-    <button id="exportLogButton">Export</button>
-
+    <!-- Portfolio View Tab -->
+    <div id="portfolio-view" class="tab-content">
+        <h2>Portfolio Summary</h2>
+        <table id="summaryTable">
+        </table>
+        <div id="assetSummaryContainer">
+        </div>
+    </div>
 </main>
 
 <!-- JavaScript Section -->
@@ -1095,6 +1142,25 @@
             default:
                 return undefined;
         }
+    }
+
+    // TAB FUNCTIONALITY
+    function openTab(evt, tabName) {
+        // Hide all tab contents
+        const tabContents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        // Remove active class from all tab buttons
+        const tabButtons = document.getElementsByClassName("tab-button");
+        for (let i = 0; i < tabButtons.length; i++) {
+            tabButtons[i].classList.remove("active");
+        }
+
+        // Show the selected tab and mark button as active
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
     }
 
 </script>
