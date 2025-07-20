@@ -101,4 +101,20 @@ class Portfolio {
         }
         return summary;
     }
+
+    getSummaryTableView() {
+        const summary = this.getSummary();
+        return new TableView(
+            ['Index', 'Platform', 'Type', 'Name', 'Count', 'Currency', 'Code'],
+            summary.map((record, index) => [
+                (index + 1).toString(),
+                record.platformName,
+                record.assetType,
+                record.assetFriendlyName,
+                record.count.toString(),
+                record.currency,
+                record.assetCode
+            ])
+        );
+    }
 }
