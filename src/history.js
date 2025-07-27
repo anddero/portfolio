@@ -152,7 +152,7 @@ function getCashHistoryTableView(history) {
     }
     let currentValue = new Decimal(0);
     return new TableView(
-        ['Date', 'Change', 'Value', 'Action'],
+        ['Date', 'Change', 'Balance', 'Action'],
         history.map(record => [
             formatLocalDateForView(record.date),
             record.valueChange.toString(), // Convert Decimal to string for display
@@ -172,7 +172,7 @@ function getSimpleAssetHistoryTableView(history) {
     let currentCount = new Decimal(0);
     let currentCash = new Decimal(0);
     return new TableView(
-        ['Date', 'Change', 'Count', 'Cash', 'Total Cash', 'Action'],
+        ['Date', 'Change', 'Count', 'Cash', 'Profit', 'Action'],
         history.map(record => [
             formatLocalDateForView(record.date),
             record.valueChange.toString(), // Convert Decimal to string for display
