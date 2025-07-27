@@ -35,3 +35,10 @@
 .tab-content.active {
     display: block;
 }
+
+/* Table Styles */
+.table-container {
+    display: block;
+    height: 200px;
+    overflow-y: auto;
+}
