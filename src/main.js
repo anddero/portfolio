@@ -86,9 +86,9 @@ async function onImportLogInputChange(event) {
         gActivityErrorMap = activityErrorMap;
         gPortfolioState = portfolioObj;
         setImportLogInputMsg(msg.text, msg.isError);
-        reloadLogTable();
-        reloadSummaryTable();
-        reloadAssetHistoryTables();
+        tryReloadTable("logTable", reloadLogTable);
+        tryReloadTable("summaryTable", reloadSummaryTable);
+        tryReloadTable("assetSummaryContainer", reloadAssetHistoryTables);
     };
 
     const file = event.target.files[0];
@@ -126,18 +126,59 @@ async function onImportLogInputChange(event) {
 }
 
 // Reload the summary table view, based on global portfolio object
-function reloadSummaryTable() {
-    gPortfolioState.getSummaryTableView().updateDom("summaryTable");
+function reloadSummaryTable(id) {
+    gPortfolioState.getSummaryTableView().updateDom(id);
 }
 
 // Reload the asset history tables view, based on global portfolio object
-function reloadAssetHistoryTables() {
-    gPortfolioState.getAssetHistoryTablesView().updateDom("assetSummaryContainer");
+function reloadAssetHistoryTables(id) {
+    gPortfolioState.getAssetHistoryTablesView().updateDom(id);
+}
+
+function reloadErrorTable(id, msg) {
+    const el = document.getElementById(id);
+    // if el is a div, create a table inside it
+    let errorTable = null;
+    if (el instanceof HTMLTableElement) {
+        errorTable = el;
+    } else if (el instanceof HTMLDivElement) {
+        errorTable = document.createElement("table");
+        el.innerHTML = ''; // Clear the div
+        el.appendChild(errorTable);
+    } else {
+        throw new Error(`Element with id "${id}" is neither a table nor a div.`);
+    }
+    errorTable.innerHTML = `
+        <thead>
+        <tr>
+            <th>Failure</th>
+        </tr>
+        </thead>
+        <tbody>
+            <td>${msg}</td>
+        </tbody>
+        `;
+    // Style bold and red
+    errorTable.style.fontWeight = "bold";
+    errorTable.style.color = "red";
+}
+
+function tryReloadTable(id, loader) {
+    try {
+        validateNonBlankString(id).getOrThrow('id');
+        if (typeof loader !== 'function') {
+            throw new Error('Loader must be a function');
+        }
+        loader(id);
+    } catch (e) {
+        console.error(`Error while reloading table ${id}:`, e);
+        reloadErrorTable(id, `Error while reloading table ${id}: ${e.message}`);
+    }
 }
 
 // Reload the activity table view, based on global activity list and error map
-function reloadLogTable() {
-    const logTable = document.getElementById("logTable");
+function reloadLogTable(id) {
+    const logTable = document.getElementById(id);
     logTable.innerHTML = `
         <thead>
         <tr>
@@ -149,7 +190,7 @@ function reloadLogTable() {
         `;
 
     const rowLength = ALL_POSSIBLE_JSON_FIELDS.length + 1; // +1 for index column
-    for (const [i, item] of [...gActivityList].reverse().entries()) {
+    for (const [i, item] of gActivityList.toReversed().entries()) {
         let rowNo = gActivityList.length - i; // Reverse order, so the last item is at the top
         const row = document.createElement("tr");
         row.innerHTML = [`<td>${rowNo}</td>`].concat(ALL_POSSIBLE_JSON_FIELDS
