@@ -141,24 +141,26 @@ function reloadLogTable() {
     logTable.innerHTML = `
         <thead>
         <tr>
-            ${ALL_POSSIBLE_JSON_FIELDS.map(field => `<th>${field}</th>`).join('')}
+            ${['#'].concat(ALL_POSSIBLE_JSON_FIELDS).map(field => `<th>${field}</th>`).join('')}
         </tr>
         </thead>
         <tbody>
         </tbody>
         `;
 
-    for (const [i, item] of gActivityList.entries()) {
+    const rowLength = ALL_POSSIBLE_JSON_FIELDS.length + 1; // +1 for index column
+    for (const [i, item] of [...gActivityList].reverse().entries()) {
+        let rowNo = gActivityList.length - i; // Reverse order, so the last item is at the top
         const row = document.createElement("tr");
-        row.innerHTML = ALL_POSSIBLE_JSON_FIELDS
-            .map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`)
+        row.innerHTML = [`<td>${rowNo}</td>`].concat(ALL_POSSIBLE_JSON_FIELDS
+            .map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`))
             .join('');
         logTable.getElementsByTagName("tbody")[0].appendChild(row);
 
         if (gActivityErrorMap.has(i)) {
             const errorRow = document.createElement("tr");
             errorRow.innerHTML = `
-                    <td colspan="${ALL_POSSIBLE_JSON_FIELDS.length}"style="color: red;">
+                    <td colspan="${rowLength}"style="color: red;">
                         Applies to the above record: ${gActivityErrorMap.get(i)}
                     </td>
                 `
