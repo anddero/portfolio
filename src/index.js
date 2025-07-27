@@ -70,5 +70,18 @@ class IndexFundHolding {
     getHistoryTableView() {
         return getSimpleAssetHistoryTableView(this.#history);
     }
-}
 
+    /**
+     * Calculates the XIRR (Extended Internal Rate of Return) for this index fund holding
+     * based on its transaction history.
+     */
+    getXirr() {
+        const finalCashFlow = new Decimal(0); // TODO kmere Implement this
+        return calculateXirr(
+            this.#history.map(record => ([
+                record.cashChange,
+                record.date
+            ]))
+        );
+    }
+}

@@ -322,3 +322,51 @@ function formatLocalDateForView(date) {
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return `${date.getFullYear()} ${months[date.getMonth()]} ${date.getDate()}`;
 }
+
+/**
+ * Calculates the XIRR (Extended Internal Rate of Return) based on the given cash flow.
+ * @param {Array} dateAndCashFlowPairs An array of arrays, where each inner array contains two elements:
+ *                                     the date (as a Date object) and the cash flow amount (as a Decimal).
+ *                                     The ordering of the pairs is irrelevant.
+ *                                     The cash flow amount should be negative for cash outflows (investments)
+ *                                     and positive for cash inflows (returns).
+ * @throws {Error} On input type errors.
+ * @returns {VRes} The VRes holding a XIRR as a decimal (e.g., 0.1 for 10%), or an error if XIRR could not be calculated.
+ */
+function calculateXirr(dateAndCashFlowPairs: Array) {
+    // Internal API usage validation
+    if (!Array.isArray(dateAndCashFlowPairs)) {
+        throw new Error('dateAndCashFlowPairs must be an array');
+    }
+    dateAndCashFlowPairs.forEach(pair => {
+        if (!Array.isArray(pair) || pair.length !== 2) {
+            throw new Error('Each pair must be an array with exactly two elements');
+        }
+        if (!(pair[0] instanceof Date)) {
+            throw new Error('First element of each pair must be a Date object');
+        }
+        if (!(pair[1] instanceof Decimal)) {
+            throw new Error('Second element of each pair must be a Decimal object');
+        }
+    });
+
+    // Sort pairs by date
+    dateAndCashFlowPairs = dateAndCashFlowPairs.toSorted((pair1, pair2) => pair1[0] - pair2[0]);
+
+    // Data validation (expected failures)
+    if (dateAndCashFlowPairs.length < 2) {
+        return new VRes('At least two values are required for XIRR calculation');
+    }
+
+    // Prepare cash flows for XIRR calculation
+    const cashFlows = dateAndCashFlowPairs.map(dateAndCashPair => ({
+        amount: dateAndCashPair[1].toFloat(),
+        when: dateAndCashPair[0]
+    }));
+
+    try {
+        return new VRes(xirr(cashFlows));
+    } catch (error) {
+        return new VRes(`XIRR calculation failed: ${error.message}`);
+    }
+}
