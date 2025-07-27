@@ -79,7 +79,7 @@ class VRes {
     }
 
     /**
-     * Do something with the value in the VRes if it's a success.
+     * Do something with the value if the VRes if it's a success.
      */
     apply(callback) {
         if (typeof callback !== 'function') {
@@ -101,6 +101,31 @@ class VRes {
             this.message = `${prefix}: ${this.message}`;
         }
         return this;
+    }
+
+    isFail() {
+        return this.isFailure;
+    }
+
+    isSuccess() {
+        return !this.isFailure;
+    }
+
+    getValue() {
+        if (this.isFailure) {
+            throw new Error('VRes is a failure, cannot get value');
+        }
+        return this.value;
+    }
+
+    getMessage(log = false) {
+        if (!this.isFailure) {
+            throw new Error('VRes is a success, cannot get message');
+        }
+        if (log) {
+            console.error(this.message);
+        }
+        return this.message;
     }
 }
 
@@ -152,6 +177,21 @@ function validateIntInRange(value, min, max) {
         return new VRes();
     };
     return validateConcreteInt(value).and(validateRange);
+}
+
+function validateIndexInRange(value, min, maxExclusive) {
+    // Validate that the value is a JS integer.
+    if (typeof value !== 'number' || !Number.isInteger(value)) {
+        return new VRes('Not a JS integer');
+    }
+    // Validate that the value is in the range [min, max].
+    if (value < min) {
+        return new VRes(`Less than ${min}`);
+    }
+    if (value >= maxExclusive) {
+        return new VRes(`Greater or equal to ${maxExclusive}`);
+    }
+    return new VRes();
 }
 
 function validateNonZeroConcreteDecimal(value) {
@@ -333,7 +373,7 @@ function formatLocalDateForView(date) {
  * @throws {Error} On input type errors.
  * @returns {VRes} The VRes holding a XIRR as a decimal (e.g., 0.1 for 10%), or an error if XIRR could not be calculated.
  */
-function calculateXirr(dateAndCashFlowPairs: Array) {
+function calculateXirr(dateAndCashFlowPairs) {
     // Internal API usage validation
     if (!Array.isArray(dateAndCashFlowPairs)) {
         throw new Error('dateAndCashFlowPairs must be an array');
@@ -358,14 +398,12 @@ function calculateXirr(dateAndCashFlowPairs: Array) {
         return new VRes('At least two values are required for XIRR calculation');
     }
 
-    // Prepare cash flows for XIRR calculation
-    const cashFlows = dateAndCashFlowPairs.map(dateAndCashPair => ({
-        amount: dateAndCashPair[1].toFloat(),
-        when: dateAndCashPair[0]
-    }));
+    // Prepare cash flows for XIRR calculation as array
+    const cashFlows = dateAndCashFlowPairs.map(pair => pair[1].toNumber());
+    const dates = dateAndCashFlowPairs.map(pair => pair[0]);
 
     try {
-        return new VRes(xirr(cashFlows));
+        return new VRes(formulajs.XIRR(cashFlows, dates));
     } catch (error) {
         return new VRes(`XIRR calculation failed: ${error.message}`);
     }

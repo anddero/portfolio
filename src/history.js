@@ -172,16 +172,17 @@ function getSimpleAssetHistoryTableView(history) {
     }
     let currentCount = new Decimal(0);
     let currentCash = new Decimal(0);
+    const otherRows = history.map((record, index) => [
+        (index + 1).toString(), // Row number
+        formatLocalDateForView(record.date),
+        record.valueChange.toString(), // Convert Decimal to string for display
+        (currentCount = currentCount.plus(record.valueChange)).toString(),
+        record.cashChange.toString(), // Convert Decimal to string for display
+        (currentCash = currentCash.plus(record.cashChange)).toString(),
+        record.type // Use the type directly for display
+    ]).toReversed();
     return new TableView(
         ['#', 'Date', 'Change', 'Count', 'Cash', 'Profit', 'Action'],
-        history.map((record, index) => [
-            (index + 1).toString(), // Row number
-            formatLocalDateForView(record.date),
-            record.valueChange.toString(), // Convert Decimal to string for display
-            (currentCount = currentCount.plus(record.valueChange)).toString(),
-            record.cashChange.toString(), // Convert Decimal to string for display
-            (currentCash = currentCash.plus(record.cashChange)).toString(),
-            record.type // Use the type directly for display
-        ]).toReversed()
+        otherRows
     );
 }

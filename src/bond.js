@@ -65,7 +65,11 @@ class BondHolding {
     }
 
     getHistoryTableView() {
-        return getSimpleAssetHistoryTableView(this.#history);
+        const table = getSimpleAssetHistoryTableView(this.#history);
+        const xirr = this.getXirr().extend("XIRR calculation failed");
+        const tableStr = xirr.isSuccess() ? xirr.getValue().toString() : xirr.getMessage(true);
+        table.insertRow(0, ['XIRR', tableStr], [1, table.getTableSpan() - 1]);
+        return table;
     }
 
     /**
@@ -73,12 +77,12 @@ class BondHolding {
      * based on its transaction history.
      */
     getXirr() {
-        const finalCashFlow = new Decimal(0); // TODO kmere Implement this
+        const finalPotentialInflow = new Decimal(0); // TODO kmere Implement this - the current value of all the shares
         return calculateXirr(
             this.#history.map(record => ([
+                record.date,
                 record.cashChange,
-                record.date
-            ]))
+            ])).concat([[new Date(), finalPotentialInflow]])
         );
     }
 }
