@@ -1,10 +1,13 @@
 function getAssetPriceFromCache(code) {
     // Fetch asset price from local storage
-    const cachedPrice = localStorage.getItem(code);
-    // Validate
+    const cachedPriceStr = localStorage.getItem(code);
+    // Check if not stored
     if (cachedPrice === null) {
-        throw new Error(`Not cached`);
+        return null;
     }
+    // Parse the string into an object
+    const cachedPrice = JSON.parse(cachedPriceStr);
+    // Check if the object is valid
     if (typeof cachedPrice !== 'object') {
         throw new Error(`Not an object`);
     }
@@ -18,14 +21,15 @@ function getAssetPriceFromCache(code) {
     if (typeof cachedPrice.price !== 'number') {
         throw new Error(`Price is not a number`);
     }
-    if (!(cachedPrice.date instanceof Date)) {
-        throw new Error(`Date is not a Date`);
+    if (typeof cachedPrice.date !== 'string') {
+        throw new Error(`Date is not a string`);
     }
+    const date = new Date(cachedPrice.date);
     // Return the object
-    return cachedPrice;
+    return { price: cachedPrice.price, date: date };
 }
 
-function setAssetPriceToCache(code, price, date) {
+function setAssetPriceToCache(code, price) {
     // Validate
     if (typeof code !== 'string') {
         throw new Error(`Code is not a string`);
@@ -36,6 +40,6 @@ function setAssetPriceToCache(code, price, date) {
     if (!(date instanceof Date)) {
         throw new Error(`Date is not a Date`);
     }
-    // Store the object
-    localStorage.setItem(code, { price: price, date: date });
+    // Store the object as string, where the date is the current ISO timestamp
+    localStorage.setItem(code, JSON.stringify({ price: price, date: new Date().toISOString() }));
 }
