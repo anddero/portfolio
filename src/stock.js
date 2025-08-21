@@ -45,24 +45,24 @@ class StockHolding {
      * @param diff Difference in shares, can be negative.
      * @param acquiredCash Amount of cash spent or received for this change, can be negative.
      * @param date Date of the change, must be a Date object.
-     * @param allowZeroDiff If true, diff must be zero, otherwise it must be non-zero.
+     * @param zeroDiff If true, diff must be zero, otherwise it must be non-zero.
      * @param type Type of the change, must be a valid StockChangeType.
-     * @param allowZeroCash If true, acquiredCash must be zero, otherwise it must be non-zero.
+     * @param zeroCash If true, acquiredCash must be zero, otherwise it must be non-zero.
      */
-    updateShares(diff, acquiredCash, date, allowZeroDiff, type, allowZeroCash) {
+    updateShares(diff, acquiredCash, date, zeroDiff, type, zeroCash) {
         let warnings = [];
-        if (typeof allowZeroDiff != 'boolean') {
+        if (typeof zeroDiff != 'boolean') {
             throw new Error('Not a Boolean');
         }
-        if (typeof allowZeroCash != 'boolean') {
+        if (typeof zeroCash != 'boolean') {
             throw new Error('Not a Boolean');
         }
-        if (!allowZeroDiff) {
+        if (!zeroDiff) {
             validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
         } else {
             validateZeroDecimal(diff).getOrThrow('diff');
         }
-        if (!allowZeroCash) {
+        if (!zeroCash) {
             validateNonZeroConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
         } else {
             validateZeroDecimal(acquiredCash).getOrThrow('acquiredCash');
@@ -82,7 +82,7 @@ class StockHolding {
             type === StockChangeType.UNSPECIFIC_ACCOUNTING_INCOME) {
             this.#incomeCash = this.#incomeCash.plus(acquiredCash);
         }
-        if (type === StockChangeType.STOCK_SPLIT && !allowZeroCash) {
+        if (type === StockChangeType.STOCK_SPLIT && !zeroCash) {
             throw new Error('Stock split must have zero cash change');
         }
         this.#totalCash = this.#totalCash.plus(acquiredCash);

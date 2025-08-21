@@ -41,12 +41,12 @@ class IndexFundHolding {
         return this.#shares;
     }
 
-    updateShares(diff, acquiredCash, date, allowZeroDiff, type) {
+    updateShares(diff, acquiredCash, date, zeroDiff, type) {
         let warnings = [];
-        if (typeof allowZeroDiff != 'boolean') {
+        if (typeof zeroDiff != 'boolean') {
             throw new Error('Not a Boolean');
         }
-        if (!allowZeroDiff) {
+        if (!zeroDiff) {
             validateNonZeroConcreteDecimal(diff).getOrThrow('diff');
         } else {
             validateZeroDecimal(diff).getOrThrow('diff');
