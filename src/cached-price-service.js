@@ -3,11 +3,9 @@
  * If there is no cached price and API fetch also fails, return null.
  * @param code - The code of the asset, e.g. "AAPL" for Apple Inc.
  * @param maxAgeMinutes - The maximum age of the cached price, in minutes.
- * @param fmpApiKey - The API key for Financial Modeling Prep.
- * @param avApiKey - The API key for Alpha Vantage.
  * @returns {Promise<{price: number, date: Date}|null>} - The latest available price and timestamp, if available.
  */
-async function getAssetPrice(code, maxAgeMinutes, fmpApiKey, avApiKey) {
+async function getAssetPrice(code, maxAgeMinutes) {
     // Check if the asset price is cached
     const cachedPrice = getAssetPriceFromCache(code);
 
@@ -20,7 +18,7 @@ async function getAssetPrice(code, maxAgeMinutes, fmpApiKey, avApiKey) {
     let price = null;
     let threw = false;
     try {
-        price = await fetchCurrentPrice(code, fmpApikey, avApiKey);
+        price = await fetchCurrentPrice(code, window.APP_CONFIG.fmpApiKey, window.APP_CONFIG.avApiKey);
     } catch (error) {
         console.warn(`Failed to fetch price for ${code}: ${error.message}`);
         threw = true;
