@@ -1,4 +1,4 @@
-async function getCurrentPrice(symbol, fmpApiKey, avApiKey) {
+async function fetchCurrentPrice(symbol, fmpApiKey, avApiKey) {
     if (!symbol) {
         throw new Error('Symbol is required');
     }
@@ -14,6 +14,12 @@ async function getCurrentPrice(symbol, fmpApiKey, avApiKey) {
 
     // Try services in order
     for (const service of services) {
+        if (typeof service.apiKey !== 'string' || service.apiKey.trim() === '') {
+            doOnce(`Market Skip API ${service.name}`, () => {
+                console.warn(`API key for ${service.name} is not set, skipping it (this will be logged only once).`);
+            });
+            continue;
+        }
         try {
             const price = await service.func(symbolUpper, service.apiKey);
             console.log(`Successfully fetched price from ${service.name}: ${symbolUpper} = ${price}`);

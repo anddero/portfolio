@@ -408,3 +408,13 @@ function calculateXirr(dateAndCashFlowPairs) {
         return new VRes(`XIRR calculation failed: ${error.message}`);
     }
 }
+
+const doOnceMap = new Set();
+
+function doOnce(key, callback) {
+    if (doOnceMap.has(key)) {
+        return;
+    }
+    doOnceMap.add(key);
+    callback();
+}
