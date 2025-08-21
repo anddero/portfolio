@@ -9,6 +9,8 @@ class IndexFundHolding {
     #buyCash;
     #sellCash;
     #totalCash;
+    #latestUnitValueAndDate; // {value: Decimal, date: Date}
+    #latestTotalValue;
     #xirrStr;
     #history; // Array of IndexFundChangeRecord objects
 
@@ -23,6 +25,8 @@ class IndexFundHolding {
         this.#buyCash = new Decimal(0);
         this.#sellCash = new Decimal(0);
         this.#totalCash = new Decimal(0);
+        this.#latestUnitValueAndDate = null;
+        this.#latestTotalValue = null;
         this.#xirrStr = null;
         this.#history = [];
     }
@@ -59,7 +63,7 @@ class IndexFundHolding {
         return this.#xirrStr;
     }
 
-    updateShares(diff, acquiredCash, date, zeroDiff, type) {
+    updateShares(diff, acquiredCash, date, zeroDiff, type, unitValue) {
         let warnings = [];
         if (typeof zeroDiff != 'boolean') {
             throw new Error('Not a Boolean');
@@ -74,11 +78,19 @@ class IndexFundHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
-        if (type === "BUY") {
-            this.#buyCash = this.#buyCash.plus(acquiredCash);
-        }
-        if (type === "SELL") {
-            this.#sellCash = this.#sellCash.plus(acquiredCash);
+        if (type === "BUY" || type === "SELL") {
+            validateNonZeroConcreteDecimal(unitValue).getOrThrow('unitValue');
+            this.#latestUnitValueAndDate = {value: unitValue, date: date};
+            if (type === "BUY") {
+                this.#buyCash = this.#buyCash.plus(acquiredCash);
+            }
+            if (type === "SELL") {
+                this.#sellCash = this.#sellCash.plus(acquiredCash);
+            }
+        } else {
+            if (unitValue !== null) {
+                throw new Error('Unexpected unitValue');
+            }
         }
         this.#totalCash = this.#totalCash.plus(acquiredCash);
         this.#history.push(new IndexFundChangeRecord(date, diff, acquiredCash, type));
@@ -89,15 +101,37 @@ class IndexFundHolding {
     }
 
     // Run all sorts of validations on the cash holding.
-    validateAndFinalize() {
+    async validateAndFinalize() {
         validateHistoryChronological(this.#history);
         validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
         validateHistoryFieldSum(this.#history, 'cashChange', this.#totalCash);
         if (!this.#buyCash.add(this.#sellCash).equals(this.#totalCash)) {
             throw new Error('Buy cash + sell cash != total cash');
         }
-        const xirr = this.getXirr().extend("XIRR calculation failed");
-        this.#xirrStr = xirr.isSuccess() ? xirr.getValue().toString() : xirr.getMessage(true);
+        // Fetch the latest unit value if more than 0 shares.
+        if (this.#shares.greaterThan(0)) {
+            const unitValueAndDate = await getAssetPrice(this.#code);
+            if (unitValueAndDate !== null) {
+                if (unitValueAndDate.date > this.#latestUnitValueAndDate.date) {
+                    this.#latestUnitValueAndDate = unitValueAndDate;
+                }
+            }
+        }
+        // Calculate XIRR if any activity in history.
+        if (this.#history.length > 0) {
+            // If there's any activity, the latest unit value should be present as well.
+            if (!this.#latestUnitValueAndDate) {
+                throw new Error(`Latest unit value not set despite having history: ${this.#history}`);
+            }
+            // Validate that the latest unit value is a Decimal.
+            validateNonZeroConcreteDecimal(this.#latestUnitValueAndDate.value).getOrThrow('latestUnitValue');
+            validateDate(this.#latestUnitValueAndDate.date).getOrThrow('latestUnitValueDate');
+            // Calculate the total value of all shares.
+            this.#latestTotalValue = this.#shares.times(this.#latestUnitValueAndDate.value);
+            // Calculate XIRR.
+            const xirr = this.getXirr().extend("XIRR calculation failed");
+            this.#xirrStr = xirr.isSuccess() ? xirr.getValue().toString() : xirr.getMessage(true);
+        }
     }
 
     getHistoryTableView() {
@@ -115,7 +149,8 @@ class IndexFundHolding {
      * based on its transaction history.
      */
     getXirr() {
-        const finalPotentialInflow = new Decimal(0); // TODO kmere Implement this - the current value of all the shares
+        validateConcreteDecimal(this.#latestTotalValue).getOrThrow('latestTotalValue');
+        const finalPotentialInflow = this.#latestTotalValue;
         return calculateXirr(
             this.#history.map(record => ([
                 record.date,

@@ -58,8 +58,8 @@ class Portfolio {
         return new VRes();
     }
 
-    validateAndFinalize() {
-        this.#platforms.values().forEach(platform => platform.validateAndFinalize());
+    async validateAndFinalize() {
+        await Promise.all(Array.from(this.#platforms.values()).map(platform => platform.validateAndFinalize()));
     }
 
     getSummary() {

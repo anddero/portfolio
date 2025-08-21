@@ -194,7 +194,7 @@ function validateIndexInRange(value, min, maxExclusive) {
     return new VRes();
 }
 
-function validateNonZeroConcreteDecimal(value) {
+function validateConcreteDecimal(value) {
     if (!(value instanceof Decimal)) {
         return new VRes('Not a Decimal');
     }
@@ -204,8 +204,22 @@ function validateNonZeroConcreteDecimal(value) {
     if (!value.isFinite()) {
         return new VRes('Not finite');
     }
-    if (value.isZero()) {
-        return new VRes('Zero');
+    return new VRes();
+}
+
+function validateNonZeroConcreteDecimal(value) {
+    return validateConcreteDecimal(value)
+        .and(() => {
+            if (value.isZero()) {
+                return new VRes('Zero');
+            }
+            return new VRes();
+        });
+}
+
+function validateDate(value) {
+    if (!(value instanceof Date)) {
+        return new VRes('Not a Date');
     }
     return new VRes();
 }

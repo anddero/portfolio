@@ -162,8 +162,8 @@ class Platform {
             .concat(this.getBondHoldings());
     }
 
-    validateAndFinalize() {
-        this.getAllHoldings().forEach(holding => holding.validateAndFinalize());
+    async validateAndFinalize() {
+        await Promise.all(this.getAllHoldings().map(holding => holding.validateAndFinalize()));
     }
 }
 
