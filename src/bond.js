@@ -60,6 +60,10 @@ class BondHolding {
         return this.#xirrStr;
     }
 
+    getTotalCurrentValue() {
+        return this.#latestTotalValue;
+    }
+
     updateShares(diff, acquiredCash, date, zeroDiff, type, unitValue) {
         let warnings = [];
         if (typeof zeroDiff != 'boolean') {
@@ -132,10 +136,11 @@ class BondHolding {
     getHistoryTableView() {
         const table = getSimpleAssetHistoryTableView(this.#history);
         const singleValueSpans = [1, table.getTableSpan() - 1];
-        table.insertRow(0, ['XIRR', this.#xirrStr], singleValueSpans);
-        table.insertRow(1, ['Total Cash', this.#totalCash.toString()], singleValueSpans);
-        table.insertRow(2, ['Buy Cash', this.#buyCash.toString()], singleValueSpans);
-        table.insertRow(3, ['Interest Cash', this.#interestCash.toString()], singleValueSpans);
+        table.insertRow(0, ['Value', this.#latestTotalValue.toString()], singleValueSpans);
+        table.insertRow(1, ['XIRR', this.#xirrStr], singleValueSpans);
+        table.insertRow(2, ['Total Cash', this.#totalCash.toString()], singleValueSpans);
+        table.insertRow(3, ['Buy Cash', this.#buyCash.toString()], singleValueSpans);
+        table.insertRow(4, ['Interest Cash', this.#interestCash.toString()], singleValueSpans);
         return table;
     }
 

@@ -66,6 +66,10 @@ class StockHolding {
         return this.#xirrStr;
     }
 
+    getTotalCurrentValue() {
+        return this.#latestTotalValue;
+    }
+
     /**
      * Updates the number of shares and the history of this stock holding.
      * @param diff Difference in shares, can be negative.
@@ -164,11 +168,12 @@ class StockHolding {
     getHistoryTableView() {
         const table = getSimpleAssetHistoryTableView(this.#history);
         const singleValueSpans = [1, table.getTableSpan() - 1];
-        table.insertRow(0, ['XIRR', this.#xirrStr], singleValueSpans);
-        table.insertRow(1, ['Total Cash', this.#totalCash.toString()], singleValueSpans);
-        table.insertRow(2, ['Buy Cash', this.#buyCash.toString()], singleValueSpans);
-        table.insertRow(3, ['Sell Cash', this.#sellCash.toString()], singleValueSpans);
-        table.insertRow(4, ['Income Cash', this.#incomeCash.toString()], singleValueSpans);
+        table.insertRow(0, ['Value', this.#latestTotalValue.toString()], singleValueSpans);
+        table.insertRow(1, ['XIRR', this.#xirrStr], singleValueSpans);
+        table.insertRow(2, ['Total Cash', this.#totalCash.toString()], singleValueSpans);
+        table.insertRow(3, ['Buy Cash', this.#buyCash.toString()], singleValueSpans);
+        table.insertRow(4, ['Sell Cash', this.#sellCash.toString()], singleValueSpans);
+        table.insertRow(5, ['Income Cash', this.#incomeCash.toString()], singleValueSpans);
         return table;
     }
 
