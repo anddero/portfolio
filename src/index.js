@@ -6,6 +6,9 @@ class IndexFundHolding {
     #friendlyName;
     #currency;
     #shares;
+    #buyCash;
+    #sellCash;
+    #totalCash;
     #history; // Array of IndexFundChangeRecord objects
 
     constructor(code, friendlyName, currency) {
@@ -16,6 +19,9 @@ class IndexFundHolding {
         this.#friendlyName = friendlyName;
         this.#currency = currency;
         this.#shares = new Decimal(0);
+        this.#buyCash = new Decimal(0);
+        this.#sellCash = new Decimal(0);
+        this.#totalCash = new Decimal(0);
         this.#history = [];
     }
 
@@ -50,6 +56,13 @@ class IndexFundHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
+        if (type === IndexFundChangeType.BUY) {
+            this.#buyCash = this.#buyCash.plus(acquiredCash);
+        }
+        if (type === IndexFundChangeType.SELL) {
+            this.#sellCash = this.#sellCash.plus(acquiredCash);
+        }
+        this.#totalCash = this.#totalCash.plus(acquiredCash);
         this.#history.push(new IndexFundChangeRecord(date, diff, acquiredCash, type));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);

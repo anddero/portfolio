@@ -3,6 +3,10 @@ class StockHolding {
     #friendlyName;
     #currency;
     #shares;
+    #buyCash;
+    #sellCash;
+    #incomeCash;
+    #totalCash;
     #history; // Array of StockChangeRecord objects
 
     constructor(code, friendlyName, currency) {
@@ -13,6 +17,10 @@ class StockHolding {
         this.#friendlyName = friendlyName;
         this.#currency = currency;
         this.#shares = new Decimal(0);
+        this.#buyCash = new Decimal(0);
+        this.#sellCash = new Decimal(0);
+        this.#incomeCash = new Decimal(0);
+        this.#totalCash = new Decimal(0);
         this.#history = [];
     }
 
@@ -63,6 +71,21 @@ class StockHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
+        if (type === StockChangeType.BUY) {
+            this.#buyCash = this.#buyCash.plus(acquiredCash);
+        }
+        if (type === StockChangeType.SELL) {
+            this.#sellCash = this.#sellCash.plus(acquiredCash);
+        }
+        if (type === StockChangeType.DIVIDEND ||
+            type === StockChangeType.PUBLIC_TO_PRIVATE_SHARE_CONVERSION ||
+            type === StockChangeType.UNSPECIFIC_ACCOUNTING_INCOME) {
+            this.#incomeCash = this.#incomeCash.plus(acquiredCash);
+        }
+        if (type === StockChangeType.STOCK_SPLIT && !allowZeroCash) {
+            throw new Error('Stock split must have zero cash change');
+        }
+        this.#totalCash = this.#totalCash.plus(acquiredCash);
         this.#history.push(new StockChangeRecord(date, diff, acquiredCash, type));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
