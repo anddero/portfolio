@@ -56,10 +56,10 @@ class IndexFundHolding {
             throw new Error('Not a Date');
         }
         this.#shares = this.#shares.plus(diff);
-        if (type === IndexFundChangeType.BUY) {
+        if (type === "BUY") {
             this.#buyCash = this.#buyCash.plus(acquiredCash);
         }
-        if (type === IndexFundChangeType.SELL) {
+        if (type === "SELL") {
             this.#sellCash = this.#sellCash.plus(acquiredCash);
         }
         this.#totalCash = this.#totalCash.plus(acquiredCash);
@@ -74,6 +74,10 @@ class IndexFundHolding {
     validate() {
         validateHistoryChronological(this.#history);
         validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
+        validateHistoryFieldSum(this.#history, 'cashChange', this.#totalCash);
+        if (!this.#buyCash.add(this.#sellCash).equals(this.#totalCash)) {
+            throw new Error('Buy cash + sell cash != total cash');
+        }
     }
 
     getCashChangeSum() {
@@ -84,7 +88,11 @@ class IndexFundHolding {
         const table = getSimpleAssetHistoryTableView(this.#history);
         const xirr = this.getXirr().extend("XIRR calculation failed");
         const tableStr = xirr.isSuccess() ? xirr.getValue().toString() : xirr.getMessage(true);
-        table.insertRow(0, ['XIRR', tableStr], [1, table.getTableSpan() - 1]);
+        const singleValueSpans = [1, table.getTableSpan() - 1];
+        table.insertRow(0, ['XIRR', tableStr], singleValueSpans);
+        table.insertRow(1, ['Total Cash', this.#totalCash.toString()], singleValueSpans);
+        table.insertRow(2, ['Buy Cash', this.#buyCash.toString()], singleValueSpans);
+        table.insertRow(3, ['Sell Cash', this.#sellCash.toString()], singleValueSpans);
         return table;
     }
 
