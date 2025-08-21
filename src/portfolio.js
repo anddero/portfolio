@@ -1,6 +1,6 @@
 class SummaryRecord {
     constructor(platformName, assetType, assetFriendlyName, currency,
-                count, totalCurrentValue, totalBuy, totalSell, totalIncome, totalProfit, xirr,
+                count, totalCurrentValue, currentValueDate, totalBuy, totalSell, totalIncome, totalProfit, xirr,
                 assetCode) {
         this.platformName = platformName;
         this.assetType = assetType;
@@ -8,6 +8,7 @@ class SummaryRecord {
         this.currency = currency;
         this.count = count;
         this.totalCurrentValue = totalCurrentValue;
+        this.currentValueDate = currentValueDate;
         this.totalBuy = totalBuy;
         this.totalSell = totalSell;
         this.totalIncome = totalIncome;
@@ -74,6 +75,7 @@ class Portfolio {
                     cashHolding.getCurrency(),
                     "",
                     cashHolding.getCurrentValue().toString(),
+                    new Date(),
                     "",
                     "",
                     "",
@@ -90,6 +92,7 @@ class Portfolio {
                     stockHolding.getCurrency(),
                     stockHolding.getCurrentShares().toString(),
                     stockHolding.getTotalCurrentValue().toString(),
+                    stockHolding.getCurrentValueDate(),
                     stockHolding.getBuyCash().toString(),
                     stockHolding.getSellCash().toString(),
                     stockHolding.getIncomeCash().toString(),
@@ -106,6 +109,7 @@ class Portfolio {
                     indexFundHolding.getCurrency(),
                     indexFundHolding.getCurrentShares().toString(),
                     indexFundHolding.getTotalCurrentValue().toString(),
+                    indexFundHolding.getCurrentValueDate(),
                     indexFundHolding.getBuyCash().toString(),
                     indexFundHolding.getSellCash().toString(),
                     "",
@@ -122,6 +126,7 @@ class Portfolio {
                     bondHolding.getCurrency(),
                     bondHolding.getCurrentShares().toString(),
                     bondHolding.getTotalCurrentValue().toString(),
+                    bondHolding.getCurrentValueDate(),
                     bondHolding.getBuyCash().toString(),
                     "",
                     bondHolding.getInterestCash().toString(),
@@ -137,7 +142,7 @@ class Portfolio {
     getSummaryTableView() {
         const summary = this.getSummary();
         return new TableView(
-            ['Index', 'Platform', 'Type', 'Name', 'Count', 'Value', 'Buy', 'Sell', 'Income', 'Profit', "XIRR", 'Currency', 'Code'],
+            ['Index', 'Platform', 'Type', 'Name', 'Count', 'Value', 'As Of Date', 'Buy', 'Sell', 'Income', 'Profit', "XIRR", 'Currency', 'Code'],
             summary.map((record, index) => [
                 (index + 1).toString(),
                 record.platformName,
@@ -145,6 +150,7 @@ class Portfolio {
                 record.assetFriendlyName,
                 record.count,
                 record.totalCurrentValue,
+                formatLocalDateForView(record.currentValueDate),
                 record.totalBuy,
                 record.totalSell,
                 record.totalIncome,
