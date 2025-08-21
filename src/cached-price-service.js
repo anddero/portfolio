@@ -18,7 +18,7 @@ async function getAssetPrice(code, maxAgeMinutes) {
     let price = null;
     let threw = false;
     try {
-        price = await fetchCurrentPrice(code, window.APP_CONFIG.fmpApiKey, window.APP_CONFIG.avApiKey);
+        price = await fetchCurrentPrice(code, window.APP_SECRETS.fmpApiKey, window.APP_SECRETS.avApiKey);
     } catch (error) {
         console.warn(`Failed to fetch price for ${code}: ${error.message}`);
         threw = true;
