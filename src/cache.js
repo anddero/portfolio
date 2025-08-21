@@ -2,7 +2,7 @@ function getAssetPriceFromCache(code) {
     // Fetch asset price from local storage
     const cachedPriceStr = localStorage.getItem(code);
     // Check if not stored
-    if (cachedPrice === null) {
+    if (cachedPriceStr === null) {
         return null;
     }
     // Parse the string into an object
@@ -36,9 +36,6 @@ function setAssetPriceToCache(code, price) {
     }
     if (typeof price !== 'number') {
         throw new Error(`Price is not a number`);
-    }
-    if (!(date instanceof Date)) {
-        throw new Error(`Date is not a Date`);
     }
     // Store the object as string, where the date is the current ISO timestamp
     localStorage.setItem(code, JSON.stringify({ price: price, date: new Date().toISOString() }));

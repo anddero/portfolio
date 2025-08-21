@@ -9,7 +9,7 @@ async function fetchCurrentPrice(symbol, fmpApiKey, avApiKey) {
     const services = [
         { name: 'Financial Modeling Prep', func: getFinancialModelingPrepPrice, 'apiKey': fmpApiKey },
         { name: 'Alpha Vantage', func: getAlphaVantagePrice, 'apiKey': avApiKey },
-        { name: 'Yahoo Finance', func: getYahooFinancePrice, 'apiKey': null }
+        { name: 'Yahoo Finance', func: getYahooFinancePrice, 'apiKey': 'ignore' }
     ];
 
     // Try services in order
@@ -25,7 +25,7 @@ async function fetchCurrentPrice(symbol, fmpApiKey, avApiKey) {
             console.log(`Successfully fetched price from ${service.name}: ${symbolUpper} = ${price}`);
             return price;
         } catch (error) {
-            console.error(`Error fetching price from ${service.name} for symbol ${symbolUpper}: ${error.message}`);
+            console.warn(`Error fetching price from ${service.name} for symbol ${symbolUpper}: ${error.message}`);
         }
     }
 

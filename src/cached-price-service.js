@@ -5,7 +5,7 @@
  * @param maxAgeMinutes - The maximum age of the cached price, in minutes.
  * @returns {Promise<{price: number, date: Date}|null>} - The latest available price and timestamp, if available.
  */
-async function getAssetPrice(code, maxAgeMinutes) {
+async function getAssetPrice(code, maxAgeMinutes = window.APP_CONFIG.assetPriceCacheTimeToLiveMinutes) {
     // Check if the asset price is cached
     const cachedPrice = getAssetPriceFromCache(code);
 
