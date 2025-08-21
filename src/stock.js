@@ -7,6 +7,7 @@ class StockHolding {
     #sellCash;
     #incomeCash;
     #totalCash;
+    #xirrStr;
     #history; // Array of StockChangeRecord objects
 
     constructor(code, friendlyName, currency) {
@@ -21,6 +22,7 @@ class StockHolding {
         this.#sellCash = new Decimal(0);
         this.#incomeCash = new Decimal(0);
         this.#totalCash = new Decimal(0);
+        this.#xirrStr = null;
         this.#history = [];
     }
 
@@ -38,6 +40,26 @@ class StockHolding {
 
     getCurrentShares() {
         return this.#shares;
+    }
+
+    getBuyCash() {
+        return this.#buyCash;
+    }
+
+    getSellCash() {
+        return this.#sellCash;
+    }
+
+    getIncomeCash() {
+        return this.#incomeCash;
+    }
+
+    getTotalCash() {
+        return this.#totalCash;
+    }
+
+    getXirrStr() {
+        return this.#xirrStr;
     }
 
     /**
@@ -94,25 +116,21 @@ class StockHolding {
     }
 
     // Run all sorts of validations on the cash holding.
-    validate() {
+    validateAndFinalize() {
         validateHistoryChronological(this.#history);
         validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
         validateHistoryFieldSum(this.#history, 'cashChange', this.#totalCash);
         if (!this.#buyCash.add(this.#sellCash).add(this.#incomeCash).equals(this.#totalCash)) {
             throw new Error('Buy cash + sell cash + income cash != total cash');
         }
-    }
-
-    getCashChangeSum() {
-        return getHistoryFieldSum(this.#history, 'valueChange');
+        const xirr = this.getXirr().extend("XIRR calculation failed");
+        this.#xirrStr = xirr.isSuccess() ? xirr.getValue().toString() : xirr.getMessage(true);
     }
 
     getHistoryTableView() {
         const table = getSimpleAssetHistoryTableView(this.#history);
-        const xirr = this.getXirr().extend("XIRR calculation failed");
-        const tableStr = xirr.isSuccess() ? xirr.getValue().toString() : xirr.getMessage(true);
         const singleValueSpans = [1, table.getTableSpan() - 1];
-        table.insertRow(0, ['XIRR', tableStr], singleValueSpans);
+        table.insertRow(0, ['XIRR', this.#xirrStr], singleValueSpans);
         table.insertRow(1, ['Total Cash', this.#totalCash.toString()], singleValueSpans);
         table.insertRow(2, ['Buy Cash', this.#buyCash.toString()], singleValueSpans);
         table.insertRow(3, ['Sell Cash', this.#sellCash.toString()], singleValueSpans);

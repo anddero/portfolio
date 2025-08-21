@@ -41,13 +41,9 @@ class CashHolding {
     }
 
     // Run all sorts of validations on the cash holding.
-    validate() {
+    validateAndFinalize() {
         validateHistoryChronological(this.#history);
         validateHistoryFieldSum(this.#history, 'valueChange', this.#value);
-    }
-
-    getCashChangeSum() {
-        return getHistoryFieldSum(this.#history, 'valueChange');
     }
 
     getHistoryTableView() {

@@ -1,10 +1,17 @@
 class SummaryRecord {
-    constructor(platformName, assetType, assetFriendlyName, currency, count, assetCode) {
+    constructor(platformName, assetType, assetFriendlyName, currency,
+                count, totalBuy, totalSell, totalIncome, totalProfit, xirr,
+                assetCode) {
         this.platformName = platformName;
         this.assetType = assetType;
         this.assetFriendlyName = assetFriendlyName;
         this.currency = currency;
         this.count = count;
+        this.totalBuy = totalBuy;
+        this.totalSell = totalSell;
+        this.totalIncome = totalIncome;
+        this.totalProfit = totalProfit;
+        this.xirr = xirr;
         this.assetCode = assetCode;
     }
 }
@@ -51,8 +58,8 @@ class Portfolio {
         return new VRes();
     }
 
-    validate() {
-        this.#platforms.values().forEach(platform => platform.validate());
+    validateAndFinalize() {
+        this.#platforms.values().forEach(platform => platform.validateAndFinalize());
     }
 
     getSummary() {
@@ -65,6 +72,11 @@ class Portfolio {
                     cashHolding.getCurrency(),
                     cashHolding.getCurrency(),
                     cashHolding.getCurrentValue().toString(),
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
                     cashHolding.getCurrency()
                 ));
             }
@@ -75,6 +87,11 @@ class Portfolio {
                     stockHolding.getFriendlyName(),
                     stockHolding.getCurrency(),
                     stockHolding.getCurrentShares().toString(),
+                    stockHolding.getBuyCash().toString(),
+                    stockHolding.getSellCash().toString(),
+                    stockHolding.getIncomeCash().toString(),
+                    stockHolding.getTotalCash().toString(),
+                    stockHolding.getXirrStr(),
                     stockHolding.getCode()
                 ));
             }
@@ -85,6 +102,11 @@ class Portfolio {
                     indexFundHolding.getFriendlyName(),
                     indexFundHolding.getCurrency(),
                     indexFundHolding.getCurrentShares().toString(),
+                    indexFundHolding.getBuyCash().toString(),
+                    indexFundHolding.getSellCash().toString(),
+                    "",
+                    indexFundHolding.getTotalCash().toString(),
+                    indexFundHolding.getXirrStr(),
                     indexFundHolding.getCode()
                 ));
             }
@@ -95,6 +117,11 @@ class Portfolio {
                     bondHolding.getFriendlyName(),
                     bondHolding.getCurrency(),
                     bondHolding.getCurrentShares().toString(),
+                    bondHolding.getBuyCash().toString(),
+                    "",
+                    bondHolding.getInterestCash().toString(),
+                    bondHolding.getTotalCash().toString(),
+                    bondHolding.getXirrStr(),
                     bondHolding.getCode()
                 ));
             }
@@ -105,13 +132,18 @@ class Portfolio {
     getSummaryTableView() {
         const summary = this.getSummary();
         return new TableView(
-            ['Index', 'Platform', 'Type', 'Name', 'Count', 'Currency', 'Code'],
+            ['Index', 'Platform', 'Type', 'Name', 'Count', 'Buy', 'Sell', 'Income', 'Profit', "XIRR", 'Currency', 'Code'],
             summary.map((record, index) => [
                 (index + 1).toString(),
                 record.platformName,
                 record.assetType,
                 record.assetFriendlyName,
                 record.count.toString(),
+                record.totalBuy.toString(),
+                record.totalSell.toString(),
+                record.totalIncome.toString(),
+                record.totalProfit.toString(),
+                record.xirr,
                 record.currency,
                 record.assetCode
             ])

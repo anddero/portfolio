@@ -287,7 +287,7 @@ function processActivityList(activityFileJson) {
 
     if (!criticalErrorOccurred) {
         // Validation will fail if another critical error stopped the processing, causing it to overwrite the original issue.
-        portfolioObj.validate();
+        portfolioObj.validateAndFinalize();
     }
 
     return [portfolioObj, activityErrorMap, criticalErrorOccurred];
