@@ -308,21 +308,21 @@ function validateCurrencyInput(currency) {
         .and(validateRegex);
 }
 
-// Validate that the date string in format "DD.MM.YYYY" has correct format and is a valid date.
+// Validate that the date string in format "YYYY.MM.DD" has correct format and is a valid date.
 // Return a VRes with a Date object if valid.
 function parseDateInput(dateStr) {
     let validateRegex = () => {
-        // Check date format DD.MM.YYYY
-        const dateRegex = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+        // Check date format YYYY.MM.DD
+        const dateRegex = /^(\d{4})\.(\d{2})\.(\d{2})$/;
         const dateMatch = dateStr.match(dateRegex);
         if (!dateMatch) {
-            return new VRes(`Expected format DD.MM.YYYY`);
+            return new VRes(`Expected format YYYY.MM.DD`);
         }
 
         // Validate that the date is a valid date
-        const day = parseInt(dateMatch[1], 10);
+        const year = parseInt(dateMatch[1], 10);
         const month = parseInt(dateMatch[2], 10);
-        const year = parseInt(dateMatch[3], 10);
+        const day = parseInt(dateMatch[3], 10);
         if (day < 1 || day > 31) {
             return new VRes(`Invalid day`);
         }
@@ -331,7 +331,7 @@ function parseDateInput(dateStr) {
         }
         const dateObj = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
 
-        // Check if the date is valid (e.g., not 31.02.2023)
+        // Check if the date is valid (e.g., not 2023.02.31)
         if (dateObj.getDate() !== day ||
             dateObj.getMonth() + 1 !== month ||
             dateObj.getFullYear() !== year) {
