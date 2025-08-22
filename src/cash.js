@@ -1,12 +1,14 @@
 class CashHolding {
     #currency;
     #value;
+    #cashInterestSum;
     #history; // Array of CashChangeRecord objects.
 
     constructor(currency) {
         validateNonBlankString(currency).getOrThrow('currency');
         this.#currency = currency;
         this.#value = new Decimal(0);
+        this.#cashInterestSum = new Decimal(0);
         this.#history = [];
     }
 
@@ -33,6 +35,9 @@ class CashHolding {
             throw new Error('Not a Date');
         }
         this.#value = this.#value.plus(diff);
+        if (type === "CASH_INTEREST") {
+            this.#cashInterestSum = this.#cashInterestSum.plus(diff);
+        }
         this.#history.push(new CashChangeRecord(date, diff, type));
         if (this.#value.lessThan(0)) {
             warnings.push(`Cash "${this.#currency}" value ${this.#value} has become negative.`);
@@ -47,6 +52,9 @@ class CashHolding {
     }
 
     getHistoryTableView() {
-        return getCashHistoryTableView(this.#history);
+        const table = getCashHistoryTableView(this.#history);
+        const singleValueSpans = [1, table.getTableSpan() - 1];
+        table.insertRow(0, ['Interest Cash', this.#cashInterestSum.toString()], singleValueSpans);
+        return table;
     }
 }

@@ -2,6 +2,7 @@ const CashChangeType = Object.freeze({
     CASH_DEPOSIT: 'deposit',
     CASH_TRANSFER: 'transfer',
     CASH_CURRENCY_CONVERSION: 'currency conversion',
+    CASH_INTEREST: 'interest cash',
     STOCK_BUY: 'buy stock',
     STOCK_SELL: 'sell stock',
     STOCK_DIVIDEND: 'dividend stock',

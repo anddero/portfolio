@@ -527,12 +527,24 @@ function processActionStockSplit(item, portfolioObj) {
 }
 
 function processActionInterest(item, portfolioObj) {
-    let warnings = [];
-
     // Validate that the platform exists
     if (!portfolioObj.hasPlatform(item.platform)) {
         throw new Error(`Platform "${item.platform}" does not exist`);
     }
+    // Process the asset with a dedicated function
+    switch (item.assetType) {
+        case "Cash":
+            return processActionInterestCash(item, portfolioObj);
+        case "Bond":
+            return processActionInterestBond(item, portfolioObj);
+        default:
+            throw new Error(`Processing of "Interest" for asset type "${item.assetType}" is not implemented`);
+    }
+}
+
+function processActionInterestBond(item, portfolioObj) {//
+    let warnings = [];
+
     const platform = portfolioObj.getPlatform(item.platform);
     const bondHolding = platform.getBondHolding(item.assetCode);
     if (bondHolding.getCurrency() !== item.currency) {
@@ -567,6 +579,43 @@ function processActionInterest(item, portfolioObj) {
     // Update the cash amount on the platform
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(item.netValue, item.date, "BOND_INTEREST"));
     warnings = warnings.concat(bondHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "INTEREST", null));
+    return warnings;
+}
+
+function processActionInterestCash(item, portfolioObj) {//
+    let warnings = [];
+
+    const platform = portfolioObj.getPlatform(item.platform);
+    const cashHolding = platform.getCashHolding(item.currency);
+
+    // Validate that the gross value is positive
+    if (item.grossValue.lessThanOrEqualTo(0)) {
+        throw new Error(`Gross value "${item.grossValue}" is not a positive amount`);
+    }
+    // Validate that the net value is positive
+    if (item.netValue.lessThanOrEqualTo(0)) {
+        throw new Error(`Net value "${item.netValue}" is not a positive amount`);
+    }
+    // Validate that the tax value is positive
+    if (item.taxValue.lessThan(0)) {
+        throw new Error(`Tax value "${item.taxValue}" is not a non-negative amount`);
+    }
+    // Validate that the net value is less than or equal to the gross value
+    if (item.netValue.greaterThan(item.grossValue)) {
+        throw new Error(`Net value "${item.netValue}" cannot be greater than gross value "${item.grossValue}"`);
+    }
+    // Validate that the tax value is less than or equal to the gross value
+    if (item.taxValue.greaterThan(item.grossValue)) {
+        throw new Error(`Tax value "${item.taxValue}" cannot be greater than gross value "${item.grossValue}"`);
+    }
+    // Validate that the net value plus tax value equals gross value
+    const expectedGrossValueDecimal = item.netValue.plus(item.taxValue);
+    if (!item.grossValue.equals(expectedGrossValueDecimal)) {
+        throw new Error(`Gross value ${item.grossValue} does not match the sum of net value and tax value, expected ${expectedGrossValueDecimal}`);
+    }
+
+    // Update the cash amount on the platform
+    warnings = warnings.concat(cashHolding.updateValue(item.netValue, item.date, "CASH_INTEREST"));
     return warnings;
 }
 
@@ -1184,6 +1233,8 @@ function getInputsByActionAndAsset(action, assetType) {
             switch (assetType) {
                 case "Bond":
                     return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "grossValue", "netValue", "taxValue"];
+                case "Cash":
+                    return ["date", "notes", "action", "platform", "assetType", "currency", "grossValue", "netValue", "taxValue"];
             }
             return undefined;
         case "Buy":
