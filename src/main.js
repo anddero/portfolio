@@ -1330,6 +1330,7 @@ function openTab(evt, tabName) {
 }
 
 // Some thoughts (todos)
+// TODO Add total cash flow validations - e.g. (deposit - invest - withdraw == cash balance).
 // TODO Add warning symbols ⚠️ and hover tooltips for XIRR and Value if the date is old.
 //      Probably best for this to lose the intermediate TableView layer completely and have 1 model + 1 view.
 // TODO Throws for internal issues, otherwise always VRes (both warnings and critical errors)
