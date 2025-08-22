@@ -197,12 +197,12 @@ function reloadLogTable(id) {
             .map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`))
             .join('');
         logTable.getElementsByTagName("tbody")[0].appendChild(row);
-
-        if (gActivityErrorMap.has(i)) {
+        const errorIndex = gActivityList.length - i - 1;
+        if (gActivityErrorMap.has(errorIndex)) {
             const errorRow = document.createElement("tr");
             errorRow.innerHTML = `
                     <td colspan="${rowLength}"style="color: red;">
-                        Applies to the above record: ${gActivityErrorMap.get(i)}
+                        Applies to the above record: ${gActivityErrorMap.get(errorIndex)}
                     </td>
                 `
             logTable.getElementsByTagName("tbody")[0].appendChild(errorRow);
