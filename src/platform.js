@@ -78,28 +78,28 @@ class Platform {
 
     getCashHolding(currency) {
         if (!this.hasCashHolding(currency)) {
-            throw new Error(`No cash holding for currency ${currency}`);
+            throw new Error(`No cash holding for currency ${currency} on platform ${this.#name}`);
         }
         return this.#cashHoldings.get(currency);
     }
 
     getStockHolding(code) {
         if (!this.hasStockHolding(code)) {
-            throw new Error(`No stock holding for code ${code}`);
+            throw new Error(`No stock holding for code ${code} on platform ${this.#name}`);
         }
         return this.#stockHoldings.get(code);
     }
 
     getIndexFundHolding(code) {
         if (!this.hasIndexFundHolding(code)) {
-            throw new Error(`No index fund holding for code ${code}`);
+            throw new Error(`No index fund holding for code ${code} on platform ${this.#name}`);
         }
         return this.#indexFundHoldings.get(code);
     }
 
     getBondHolding(code) {
         if (!this.hasBondHolding(code)) {
-            throw new Error(`No bond holding for code ${code}`);
+            throw new Error(`No bond holding for code ${code} on platform ${this.#name}`);
         }
         return this.#bondHoldings.get(code);
     }

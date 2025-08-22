@@ -436,10 +436,15 @@ function processActionCurrencyConversion(item, portfolioObj) {
     // Check that the conversion makes sense
     warnings = warnings.concat(validateCurrencyConversionTransactionValue(item.fromToCoefficient, item.fromValue, item.toValue));
 
+    // Validate that the fee value is non-negative
+    if (item.feeValue.lessThan(0)) {
+        throw new Error(`Fee value "${item.feeValue}" is not a non-negative amount`);
+    }
+
     // Update the cash amounts on the platform
     const platform = portfolioObj.getPlatform(item.platform);
 
-    warnings = warnings.concat(platform.getCashHolding(item.fromCurrency).updateValue(item.fromValue.negated(), item.date, "CASH_CURRENCY_CONVERSION"));
+    warnings = warnings.concat(platform.getCashHolding(item.fromCurrency).updateValue(item.fromValue.plus(item.feeValue).negated(), item.date, "CASH_CURRENCY_CONVERSION"));
     warnings = warnings.concat(platform.getCashHolding(item.toCurrency).updateValue(item.toValue, item.date, "CASH_CURRENCY_CONVERSION"));
     return warnings;
 }
@@ -718,12 +723,15 @@ function validateTotalSharesSplitValue(fromTotalShares, multiplier, toTotalShare
 function validateCurrencyConversionTransactionValue(fromToCoefficient, fromValue, toValue) {
     let warnings = [];
     let expectedToValue = fromToCoefficient.times(fromValue);
-    // Check if expected value has more than 2 decimal places, if it does, round it to 2 decimal places
+    let roundedValue = expectedToValue;
+    let flooredValue = expectedToValue;
+    // Check if expected value has more than 2 decimal places, if it does, round or floor it to 2 decimal places
     if (expectedToValue.decimalPlaces() > 2) {
-        expectedToValue = expectedToValue.toDecimalPlaces(2);
+        roundedValue = expectedToValue.toDecimalPlaces(2);
+        flooredValue = expectedToValue.toDecimalPlaces(2, Decimal.ROUND_FLOOR);
     }
-    if (!toValue.equals(expectedToValue)) {
-        warnings.push(`To value ${toValue} does not match the product of from value ${fromValue} and from-to coefficient ${fromToCoefficient}, expected ${expectedToValue}.`);
+    if (!toValue.equals(roundedValue) && !toValue.equals(flooredValue)) {
+        warnings.push(`To value ${toValue} does not match the product of from value ${fromValue} and from-to coefficient ${fromToCoefficient}, expected either rounded ${roundedValue} or floored ${flooredValue}.`);
     }
     return warnings;
 }
@@ -828,8 +836,16 @@ function processActionSellStock(item, portfolioObj) {
     }
     // Validate the total value against unit value and share count
     warnings = warnings.concat(validateTotalSharesTransactionValue(item.unitValue, item.totalShares, item.totalValue));
+    // Validate that the fee value is non-negative
+    if (item.feeValue.lessThan(0)) {
+        throw new Error(`Fee value "${item.feeValue}" is not a non-negative amount`);
+    }
+    // Validate that the fee value is smaller than the total value
+    if (item.feeValue.greaterThanOrEqualTo(item.totalValue)) {
+        throw new Error(`Fee value "${item.feeValue}" is not smaller than total value`);
+    }
     // Add the acquired cash to the platform
-    const acquiredCash = item.totalValue;
+    const acquiredCash = item.totalValue.minus(item.feeValue);
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(acquiredCash, item.date, "STOCK_SELL"));
     // Subtract the sold shares from the platform
     warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL", false, item.unitValue));
@@ -1169,14 +1185,15 @@ function parseActionInputByName(inputName, inputValue) {
             case "taxValue":
             case "fromValue":
             case "toValue":
-            case "totalShares":
             case "fromTotalShares":
             case "toTotalShares":
                 return parseDecimalInput(inputValue, 4);
+            case "totalShares":
+                return parseDecimalInput(inputValue, 9);
             case "feeValue":
                 return parseDecimalInput(inputValue, 2, true);
             case "fromToCoefficient":
-                return parseDecimalInput(inputValue, 4);
+                return parseDecimalInput(inputValue, 5);
             case "unitValue":
                 return parseDecimalInput(inputValue, 8);
             case "friendlyName":
@@ -1220,7 +1237,7 @@ function getInputsByActionAndAsset(action, assetType) {
         case "CurrencyConversion":
             switch (assetType) {
                 case "Cash":
-                    return ["date", "notes", "action", "platform", "assetType", "fromCurrency", "toCurrency", "fromValue", "toValue", "fromToCoefficient"];
+                    return ["date", "notes", "action", "platform", "assetType", "fromCurrency", "toCurrency", "fromValue", "toValue", "fromToCoefficient", "feeValue"];
             }
             return undefined;
         case "Dividend":
@@ -1249,6 +1266,7 @@ function getInputsByActionAndAsset(action, assetType) {
         case "Sell":
             switch (assetType) {
                 case "Stock":
+                    return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalShares", "unitValue", "totalValue", "feeValue"];
                 case "IndexFund":
                     return ["date", "notes", "action", "platform", "assetType", "assetCode", "currency", "totalShares", "unitValue", "totalValue"];
             }

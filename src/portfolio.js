@@ -54,7 +54,7 @@ class Portfolio {
             throw new Error('Not a Date');
         }
         if (this.#latestDate && date < this.#latestDate) {
-            return new VRes(`Date "${formatLocalDateForView(date)}" earlier than ${formatLocalDateForView(this.#latestDate)}`);
+            return new VRes(`Date "${formatLocalDateForView(date)}" earlier than "${formatLocalDateForView(this.#latestDate)}"`);
         }
         this.#latestDate = date;
         return new VRes();
