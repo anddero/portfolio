@@ -52,17 +52,8 @@ function buildSummaryTable(tableData, tableElementId) {
     `;
 }
 
-function buildStockHistoryTable(tableData, tableElementId) {
-    if (!tableElementId || typeof tableElementId !== 'string') {
-        throw new Error('tableElementId must be a non-empty string');
-    }
-
-    const tableElement = document.getElementById(tableElementId);
-    if (!(tableElement instanceof HTMLTableElement)) {
-        throw new Error('Not a valid HTMLTableElement');
-    }
-
-    tableElement.innerHTML = `
+function buildStockHistoryTable(tableData) {
+    return `
         <thead>
         <tr>
             <th>#</th>
@@ -115,17 +106,8 @@ function buildStockHistoryTable(tableData, tableElementId) {
     `;
 }
 
-function buildCashHistoryTable(tableData, tableElementId) {
-    if (!tableElementId || typeof tableElementId !== 'string') {
-        throw new Error('tableElementId must be a non-empty string');
-    }
-
-    const tableElement = document.getElementById(tableElementId);
-    if (!(tableElement instanceof HTMLTableElement)) {
-        throw new Error('Not a valid HTMLTableElement');
-    }
-
-    tableElement.innerHTML = `
+function buildCashHistoryTable(tableData) {
+    return `
         <thead>
         <tr>
             <th>#</th>
@@ -153,17 +135,8 @@ function buildCashHistoryTable(tableData, tableElementId) {
     `;
 }
 
-function buildBondHistoryTable(tableData, tableElementId) {
-    if (!tableElementId || typeof tableElementId !== 'string') {
-        throw new Error('tableElementId must be a non-empty string');
-    }
-
-    const tableElement = document.getElementById(tableElementId);
-    if (!(tableElement instanceof HTMLTableElement)) {
-        throw new Error('Not a valid HTMLTableElement');
-    }
-
-    tableElement.innerHTML = `
+function buildBondHistoryTable(tableData) {
+    return `
         <thead>
         <tr>
             <th>#</th>
@@ -212,17 +185,8 @@ function buildBondHistoryTable(tableData, tableElementId) {
     `;
 }
 
-function buildIndexHistoryTable(tableData, tableElementId) {
-    if (!tableElementId || typeof tableElementId !== 'string') {
-        throw new Error('tableElementId must be a non-empty string');
-    }
-
-    const tableElement = document.getElementById(tableElementId);
-    if (!(tableElement instanceof HTMLTableElement)) {
-        throw new Error('Not a valid HTMLTableElement');
-    }
-
-    tableElement.innerHTML = `
+function buildIndexHistoryTable(tableData) {
+    return `
         <thead>
         <tr>
             <th>#</th>
@@ -281,77 +245,67 @@ function buildAssetHistoryTables(tablesData, divElementId) {
         throw new Error('Not a HTMLDivElement');
     }
 
-    // Build HTML for all table containers grouped by type
     let htmlContent = '';
 
-    // Add Cash tables
+    // Build Cash tables
     if (tablesData.cashList && tablesData.cashList.length > 0) {
         htmlContent += '<h1>Cash Holdings</h1>';
         tablesData.cashList.forEach(table => {
             htmlContent += `
                 <div class="table-container">
                     <h2>${table.title}</h2>
-                    <table id="${table.id}"></table>
+                    <table id="${table.id}">
+                        ${buildCashHistoryTable(table.table)}
+                    </table>
                 </div>
             `;
         });
     }
 
-    // Add Stock tables
+    // Build Stock tables
     if (tablesData.stockList && tablesData.stockList.length > 0) {
         htmlContent += '<h1>Stock Holdings</h1>';
         tablesData.stockList.forEach(table => {
             htmlContent += `
                 <div class="table-container">
                     <h2>${table.title}</h2>
-                    <table id="${table.id}"></table>
+                    <table id="${table.id}">
+                        ${buildStockHistoryTable(table.table)}
+                    </table>
                 </div>
             `;
         });
     }
 
-    // Add Index Fund tables
+    // Build Index Fund tables
     if (tablesData.indexFundList && tablesData.indexFundList.length > 0) {
         htmlContent += '<h1>Index Fund Holdings</h1>';
         tablesData.indexFundList.forEach(table => {
             htmlContent += `
                 <div class="table-container">
                     <h2>${table.title}</h2>
-                    <table id="${table.id}"></table>
+                    <table id="${table.id}">
+                        ${buildIndexHistoryTable(table.table)}
+                    </table>
                 </div>
             `;
         });
     }
 
-    // Add Bond tables
+    // Build Bond tables
     if (tablesData.bondList && tablesData.bondList.length > 0) {
         htmlContent += '<h1>Bond Holdings</h1>';
         tablesData.bondList.forEach(table => {
             htmlContent += `
                 <div class="table-container">
                     <h2>${table.title}</h2>
-                    <table id="${table.id}"></table>
+                    <table id="${table.id}">
+                        ${buildBondHistoryTable(table.table)}
+                    </table>
                 </div>
             `;
         });
     }
 
     divElement.innerHTML = htmlContent;
-
-    // Build each individual table with the appropriate builder function
-    tablesData.cashList?.forEach(table => {
-        buildCashHistoryTable(table.table, table.id);
-    });
-
-    tablesData.stockList?.forEach(table => {
-        buildStockHistoryTable(table.table, table.id);
-    });
-
-    tablesData.indexFundList?.forEach(table => {
-        buildIndexHistoryTable(table.table, table.id);
-    });
-
-    tablesData.bondList?.forEach(table => {
-        buildBondHistoryTable(table.table, table.id);
-    });
 }
