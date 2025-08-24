@@ -90,9 +90,11 @@ class IndexFundHolding {
             validateNonZeroConcreteDecimal(unitValue).getOrThrow('unitValue');
             this.#latestUnitValueAndDate = {value: unitValue, date: date};
             if (type === "BUY") {
-                this.#buyCash = this.#buyCash.plus(acquiredCash);
+                validateNegativeConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+                this.#buyCash = this.#buyCash.plus(acquiredCash.negated());
             }
             if (type === "SELL") {
+                validatePositiveConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
                 this.#sellCash = this.#sellCash.plus(acquiredCash);
             }
         } else {
@@ -113,15 +115,15 @@ class IndexFundHolding {
         validateHistoryChronological(this.#history);
         validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
         validateHistoryFieldSum(this.#history, 'cashChange', this.#totalCash);
-        if (!this.#buyCash.add(this.#sellCash).equals(this.#totalCash)) {
-            throw new Error('Buy cash + sell cash != total cash');
+        if (!this.#buyCash.negated().plus(this.#sellCash).equals(this.#totalCash)) {
+            throw new Error('Invalid total cash');
         }
         // Fetch the latest unit value if more than 0 shares.
         if (this.#shares.greaterThan(0)) {
             const unitValueAndDate = await getAssetPrice(this.#code);
             if (unitValueAndDate !== null) {
                 if (unitValueAndDate.date > this.#latestUnitValueAndDate.date) {
-                    this.#latestUnitValueAndDate = unitValueAndDate;
+                    this.#latestUnitValueAndDate = { value: new Decimal(unitValueAndDate.price), date: unitValueAndDate.date};
                 }
             }
         }

@@ -217,6 +217,26 @@ function validateNonZeroConcreteDecimal(value) {
         });
 }
 
+function validatePositiveConcreteDecimal(value) {
+    return validateNonZeroConcreteDecimal(value)
+        .and(() => {
+            if (!value.isPositive()) {
+                return new VRes('Not positive');
+            }
+            return new VRes();
+        });
+}
+
+function validateNegativeConcreteDecimal(value) {
+    return validateNonZeroConcreteDecimal(value)
+        .and(() => {
+            if (!value.isNegative()) {
+                return new VRes('Not negative');
+            }
+            return new VRes();
+        });
+}
+
 function validateDate(value) {
     if (!(value instanceof Date)) {
         return new VRes('Not a Date');

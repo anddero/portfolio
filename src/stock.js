@@ -3,9 +3,10 @@ class StockHolding {
     #friendlyName;
     #currency;
     #shares;
-    #buyCash;
+    #buyCash; // has negated sign, positive amount of all spent cash on buys
     #sellCash;
     #incomeCash;
+    #otherCash; // e.g. fee for share conversion or smth like that
     #totalCash;
     #latestUnitValueAndDate; // {value: Decimal, date: Date}
     #latestTotalValue;
@@ -23,6 +24,7 @@ class StockHolding {
         this.#buyCash = new Decimal(0);
         this.#sellCash = new Decimal(0);
         this.#incomeCash = new Decimal(0);
+        this.#otherCash = new Decimal(0);
         this.#totalCash = new Decimal(0);
         this.#latestUnitValueAndDate = null;
         this.#latestTotalValue = null;
@@ -56,6 +58,10 @@ class StockHolding {
 
     getIncomeCash() {
         return this.#incomeCash;
+    }
+
+    getOtherCash() {
+        return this.#otherCash;
     }
 
     getTotalCash() {
@@ -109,9 +115,11 @@ class StockHolding {
             validateNonZeroConcreteDecimal(unitValue).getOrThrow('unitValue');
             this.#latestUnitValueAndDate = {value: unitValue, date: date};
             if (type === "BUY") {
-                this.#buyCash = this.#buyCash.plus(acquiredCash);
+                validateNegativeConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+                this.#buyCash = this.#buyCash.plus(acquiredCash.negated());
             }
             else if (type === "SELL") {
+                validatePositiveConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
                 this.#sellCash = this.#sellCash.plus(acquiredCash);
             }
         } else {
@@ -119,9 +127,13 @@ class StockHolding {
                 throw new Error('Unexpected unitValue');
             }
             if (type === "DIVIDEND" ||
-                type === "PUBLIC_TO_PRIVATE_SHARE_CONVERSION" ||
                 type === "UNSPECIFIC_ACCOUNTING_INCOME") {
+                validatePositiveConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
                 this.#incomeCash = this.#incomeCash.plus(acquiredCash);
+            }
+            if (type === "PUBLIC_TO_PRIVATE_SHARE_CONVERSION") {
+                validateNegativeConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+                this.#otherCash = this.#otherCash.plus(acquiredCash);
             }
             if (type === "STOCK_SPLIT" && !zeroCash) {
                 throw new Error('Stock split must have zero cash change');
@@ -140,15 +152,15 @@ class StockHolding {
         validateHistoryChronological(this.#history);
         validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
         validateHistoryFieldSum(this.#history, 'cashChange', this.#totalCash);
-        if (!this.#buyCash.add(this.#sellCash).add(this.#incomeCash).equals(this.#totalCash)) {
-            throw new Error('Buy cash + sell cash + income cash != total cash');
+        if (!this.#buyCash.negated().plus(this.#sellCash).plus(this.#incomeCash).plus(this.#otherCash).equals(this.#totalCash)) {
+            throw new Error('Invalid total cash');
         }
         // Fetch the latest unit value if more than 0 shares.
         if (this.#shares.greaterThan(0)) {
             const unitValueAndDate = await getAssetPrice(this.#code);
             if (unitValueAndDate !== null) {
                 if (unitValueAndDate.date > this.#latestUnitValueAndDate.date) {
-                    this.#latestUnitValueAndDate = unitValueAndDate;
+                    this.#latestUnitValueAndDate = { value: new Decimal(unitValueAndDate.price), date: unitValueAndDate.date};
                 }
             }
         }

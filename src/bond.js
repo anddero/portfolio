@@ -84,15 +84,17 @@ class BondHolding {
         }
         this.#shares = this.#shares.plus(diff);
         if (type === "BUY") {
-            this.#buyCash = this.#buyCash.plus(acquiredCash);
+            validateNegativeConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
             validateNonZeroConcreteDecimal(unitValue).getOrThrow('unitValue');
+            this.#buyCash = this.#buyCash.plus(acquiredCash.negated());
             this.#latestUnitValueAndDate = {value: unitValue, date: date};
         } else {
-            if (type === "INTEREST") {
-                this.#interestCash = this.#interestCash.plus(acquiredCash);
-            }
             if (unitValue !== null) {
                 throw new Error('Unexpected unitValue');
+            }
+            if (type === "INTEREST") {
+                validatePositiveConcreteDecimal(acquiredCash).getOrThrow('acquiredCash');
+                this.#interestCash = this.#interestCash.plus(acquiredCash);
             }
         }
         this.#totalCash = this.#totalCash.plus(acquiredCash);
@@ -108,15 +110,15 @@ class BondHolding {
         validateHistoryChronological(this.#history);
         validateHistoryFieldSum(this.#history, 'valueChange', this.#shares);
         validateHistoryFieldSum(this.#history, 'cashChange', this.#totalCash);
-        if (!this.#buyCash.add(this.#interestCash).equals(this.#totalCash)) {
-            throw new Error('Buy cash + interest cash != total cash');
+        if (!this.#buyCash.negated().add(this.#interestCash).equals(this.#totalCash)) {
+            throw new Error('Total cash invalid');
         }
         // Fetch the latest unit value if more than 0 shares.
         if (this.#shares.greaterThan(0)) {
             const unitValueAndDate = await getAssetPrice(this.#code);
             if (unitValueAndDate !== null) {
                 if (unitValueAndDate.date > this.#latestUnitValueAndDate.date) {
-                    this.#latestUnitValueAndDate = unitValueAndDate;
+                    this.#latestUnitValueAndDate = { value: new Decimal(unitValueAndDate.price), date: unitValueAndDate.date};
                 }
             }
         }

@@ -36,6 +36,7 @@ class CashHolding {
         }
         this.#value = this.#value.plus(diff);
         if (type === "CASH_INTEREST") {
+            validatePositiveConcreteDecimal(diff).getOrThrow('diff');
             this.#cashInterestSum = this.#cashInterestSum.plus(diff);
         }
         this.#history.push(new CashChangeRecord(date, diff, type));
