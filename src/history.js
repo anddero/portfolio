@@ -164,7 +164,6 @@ function getCashHistoryTableView(history) {
     }).toReversed();
 
     return {
-        type: 'cash-history',
         history: historyRecords
     };
 }
@@ -193,7 +192,6 @@ function getSimpleAssetHistoryTableView(history) {
     }).toReversed();
 
     return {
-        type: 'asset-history',
         history: historyRecords
     };
 }

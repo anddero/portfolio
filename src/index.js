@@ -148,7 +148,6 @@ class IndexFundHolding {
         const baseTable = getSimpleAssetHistoryTableView(this.#history);
 
         return {
-            type: 'index-history',
             value: this.#latestTotalValue.toString(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
             xirr: this.#xirrStr,

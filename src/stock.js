@@ -185,7 +185,6 @@ class StockHolding {
         const baseTable = getSimpleAssetHistoryTableView(this.#history);
 
         return {
-            type: 'stock-history',
             value: this.#latestTotalValue.toString(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
             xirr: this.#xirrStr,

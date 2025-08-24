@@ -56,7 +56,6 @@ class CashHolding {
         const baseTable = getCashHistoryTableView(this.#history);
 
         return {
-            type: 'cash-history',
             interestCash: this.#cashInterestSum.toString(),
             history: baseTable.history
         };

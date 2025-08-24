@@ -142,7 +142,6 @@ class Portfolio {
     getSummaryTableView() {
         const summary = this.getSummary();
         return {
-            type: 'portfolio-summary',
             assets: summary.map((record, index) => ({
                 index: index + 1,
                 platformName: record.platformName,

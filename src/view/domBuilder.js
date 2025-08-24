@@ -290,25 +290,26 @@ function buildAssetHistoryTables(tablesData, divElementId) {
         </div>
     `).join('');
 
-    // Build each individual table based on its type
+    // Build each individual table based on its properties
     tablesData.tables.forEach(table => {
-        const tableType = table.table.type;
-        switch (tableType) {
-            case 'stock-history':
-                buildStockHistoryTable(table.table, table.id);
-                break;
-            case 'cash-history':
-                buildCashHistoryTable(table.table, table.id);
-                break;
-            case 'bond-history':
-                buildBondHistoryTable(table.table, table.id);
-                break;
-            case 'index-history':
-                buildIndexHistoryTable(table.table, table.id);
-                break;
-            default:
-                // Fallback to basic table building
-                buildSummaryTable(table.table, table.id);
+        const tableData = table.table;
+
+        // Determine table type based on properties present
+        if (tableData.hasOwnProperty('interestCash') && !tableData.hasOwnProperty('value')) {
+            // Cash history table - has interestCash but no value/xirr
+            buildCashHistoryTable(tableData, table.id);
+        } else if (tableData.hasOwnProperty('incomeCash')) {
+            // Stock history table - has incomeCash (unique to stocks)
+            buildStockHistoryTable(tableData, table.id);
+        } else if (tableData.hasOwnProperty('interestCash') && tableData.hasOwnProperty('value')) {
+            // Bond history table - has both interestCash and value/xirr
+            buildBondHistoryTable(tableData, table.id);
+        } else if (tableData.hasOwnProperty('sellCash')) {
+            // Index fund history table - has sellCash but not incomeCash
+            buildIndexHistoryTable(tableData, table.id);
+        } else {
+            // Fallback to summary table building
+            buildSummaryTable(tableData, table.id);
         }
     });
 }
