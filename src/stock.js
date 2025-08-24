@@ -10,7 +10,7 @@ class StockHolding {
     #totalCash;
     #latestUnitValueAndDate; // {value: Decimal, date: Date}
     #latestTotalValue;
-    #xirrStr;
+    #xirr; // {value: Decimal|null, error: string|null}
     #history; // Array of StockChangeRecord objects
 
     constructor(code, friendlyName, currency) {
@@ -28,7 +28,7 @@ class StockHolding {
         this.#totalCash = new Decimal(0);
         this.#latestUnitValueAndDate = null;
         this.#latestTotalValue = null;
-        this.#xirrStr = null;
+        this.#xirr = { value: null, error: "not calculated yet" };
         this.#history = [];
     }
 
@@ -68,8 +68,8 @@ class StockHolding {
         return this.#totalCash;
     }
 
-    getXirrStr() {
-        return this.#xirrStr;
+    getXirrStrForDisplay() {
+        return this.#xirr.error ? `Error: ${this.#xirr.error}` : (this.#xirr.value ? `${this.#xirr.value.times(100).toFixed(1)}%` : "N/A");
     }
 
     getTotalCurrentValue() {
@@ -177,7 +177,11 @@ class StockHolding {
             this.#latestTotalValue = this.#shares.times(this.#latestUnitValueAndDate.value);
             // Calculate XIRR.
             const xirr = this.getXirr().extend("XIRR calculation failed");
-            this.#xirrStr = xirr.isSuccess() ? xirr.getValue().toString() : xirr.getMessage(true);
+            if (xirr.isSuccess()) {
+                this.#xirr = { value: xirr.getValue(), error: null };
+            } else {
+                this.#xirr = { value: null, error: xirr.getMessage(true) };
+            }
         }
     }
 
@@ -187,7 +191,7 @@ class StockHolding {
         return {
             value: this.#latestTotalValue.toNumber(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
-            xirr: this.#xirrStr,
+            xirr: this.getXirrStrForDisplay(),
             totalCash: this.#totalCash.toNumber(),
             buyCash: this.#buyCash.toNumber(),
             sellCash: this.#sellCash.toNumber(),

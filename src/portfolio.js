@@ -97,7 +97,7 @@ class Portfolio {
                     stockHolding.getSellCash().toString(),
                     stockHolding.getIncomeCash().toString(),
                     stockHolding.getTotalCash().toString(),
-                    stockHolding.getXirrStr(),
+                    stockHolding.getXirrStrForDisplay(),
                     stockHolding.getCode()
                 ));
             }
@@ -114,7 +114,7 @@ class Portfolio {
                     indexFundHolding.getSellCash().toString(),
                     "",
                     indexFundHolding.getTotalCash().toString(),
-                    indexFundHolding.getXirrStr(),
+                    indexFundHolding.getXirrStrForDisplay(),
                     indexFundHolding.getCode()
                 ));
             }
@@ -131,7 +131,7 @@ class Portfolio {
                     "",
                     bondHolding.getInterestCash().toString(),
                     bondHolding.getTotalCash().toString(),
-                    bondHolding.getXirrStr(),
+                    bondHolding.getXirrStrForDisplay(),
                     bondHolding.getCode()
                 ));
             }

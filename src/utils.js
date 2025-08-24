@@ -405,7 +405,7 @@ function formatLocalDateForView(date) {
  *                                     The cash flow amount should be negative for cash outflows (investments)
  *                                     and positive for cash inflows (returns).
  * @throws {Error} On input type errors.
- * @returns {VRes} The VRes holding a XIRR as a decimal (e.g., 0.1 for 10%), or an error if XIRR could not be calculated.
+ * @returns {VRes} The VRes holding a XIRR as a Decimal (e.g., 0.1 for 10%), or an error if XIRR could not be calculated.
  */
 function calculateXirr(dateAndCashFlowPairs) {
     // Internal API usage validation
@@ -436,11 +436,26 @@ function calculateXirr(dateAndCashFlowPairs) {
     const cashFlows = dateAndCashFlowPairs.map(pair => pair[1].toNumber());
     const dates = dateAndCashFlowPairs.map(pair => pair[0]);
 
+    let result = null;
     try {
-        return new VRes(formulajs.XIRR(cashFlows, dates));
+        result = formulajs.XIRR(cashFlows, dates);
     } catch (error) {
         return new VRes(`XIRR calculation failed: ${error.message}`);
     }
+
+    if (result === null) {
+        return new VRes('XIRR result null');
+    }
+    if (typeof result !== 'number') {
+        return new VRes('XIRR result not a number');
+    }
+    if (Number.isNaN(result)) {
+        return new VRes('XIRR result NaN');
+    }
+    if (!Number.isFinite(result)) {
+        return new VRes('XIRR result not finite');
+    }
+    return new VRes(new Decimal(result));
 }
 
 const doOnceMap = new Set();
