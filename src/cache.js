@@ -1,3 +1,8 @@
+/**
+ * Fetch the current price of an asset from the cache if it exists.
+ * @param code {string} Globally unique code and key of the asset in cache.
+ * @returns {{price: number, date: Date}|null} - The price and its timestamp, if available.
+ */
 function getAssetPriceFromCache(code) {
     // Fetch asset price from local storage
     const cachedPriceStr = localStorage.getItem(code);
@@ -5,7 +10,10 @@ function getAssetPriceFromCache(code) {
     if (cachedPriceStr === null) {
         return null;
     }
-    // Parse the string into an object
+    /**
+     * Parse the string into an object
+     * @type {{price: number, date: string}}
+     */
     const cachedPrice = JSON.parse(cachedPriceStr);
     // Check if the object is valid
     if (typeof cachedPrice !== 'object') {

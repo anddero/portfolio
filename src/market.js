@@ -1,3 +1,12 @@
+/**
+ * Attempt to fetch the current price of an asset from multiple services.
+ * Log warnings for each service that fails to fetch the price.
+ * @param symbol {string} - The symbol of the asset, e.g. "AAPL" for Apple Inc.
+ * @param fmpApiKey {string} - The API key for Financial Modeling Prep.
+ * @param avApiKey {string} - The API key for Alpha Vantage.
+ * @returns {Promise<number>} - The current price of the asset.
+ * @throws {Error} - If all services fail to fetch the price or invalid input is given.
+ */
 async function fetchCurrentPrice(symbol, fmpApiKey, avApiKey) {
     if (!symbol) {
         throw new Error('Symbol is required');
@@ -103,7 +112,7 @@ async function getAlphaVantagePrice(symbol, apiKey) {
 
     const price = parseFloat(quote['05. price']);
 
-    if (isNaN(price) || !isFinite(price) || price <= 0) {
+    if (typeof(price) !== 'number' || isNaN(price) || !isFinite(price) || price <= 0) {
         throw new Error(`Invalid price`);
     }
 
@@ -134,7 +143,7 @@ async function getYahooFinancePrice(symbol, apiKeyUnused) {
 
     const price = result.meta.regularMarketPrice || result.meta.previousClose;
 
-    if (!price || isNaN(price) || typeof price !== 'number' || !isFinite(price) || price <= 0) {
+    if (typeof price !== 'number' || isNaN(price) || !isFinite(price) || price <= 0) {
         throw new Error(`Invalid price data from Yahoo Finance for symbol: ${symbol}`);
     }
 

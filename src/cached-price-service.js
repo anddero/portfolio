@@ -1,9 +1,9 @@
 /**
  * Fetch the current price of an asset from the cache or the API.
  * If there is no cached price and API fetch also fails, return null.
- * @param code - The code of the asset, e.g. "AAPL" for Apple Inc.
- * @param maxAgeMinutes - The maximum age of the cached price, in minutes.
- * @returns {Promise<{price: number, date: Date}|null>} - The latest available price and timestamp, if available.
+ * @param code {string} - The code of the asset, e.g. "AAPL" for Apple Inc.
+ * @param maxAgeMinutes {number} - The maximum acceptable age of the cached price, in minutes.
+ * @returns {Promise<{price: number, date: Date}|null>} - The latest price and timestamp, if available.
  */
 async function getAssetPrice(code, maxAgeMinutes = window.APP_CONFIG.assetPriceCacheTimeToLiveMinutes) {
     // Check if the asset price is cached
@@ -11,10 +11,13 @@ async function getAssetPrice(code, maxAgeMinutes = window.APP_CONFIG.assetPriceC
 
     // Return it if still valid
     if (cachedPrice && Date.now() - cachedPrice.date.getTime() < maxAgeMinutes * 60 * 1000) {
-        return cachedPrice.price;
+        return cachedPrice;
     }
 
     // Fetch a new quote and cache it
+    /**
+     * @type {number|null}
+     */
     let price = null;
     let threw = false;
     try {
