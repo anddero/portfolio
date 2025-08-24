@@ -141,19 +141,16 @@ class BondHolding {
 
     getHistoryTableView() {
         const baseTable = getSimpleAssetHistoryTableView(this.#history);
-        // Create summary rows to be added at the top
-        const summaryRows = [
-            ['Value', this.#latestTotalValue.toString(), formatLocalDateForView(this.#latestUnitValueAndDate.date), '', '', '', ''],
-            ['XIRR', this.#xirrStr, '', '', '', '', ''],
-            ['Total Cash', this.#totalCash.toString(), '', '', '', '', ''],
-            ['Buy Cash', this.#buyCash.toString(), '', '', '', '', ''],
-            ['Interest Cash', this.#interestCash.toString(), '', '', '', '', '']
-        ];
 
         return {
-            header: baseTable.header,
-            body: [...summaryRows, ...baseTable.body],
-            type: 'bond-history'
+            type: 'bond-history',
+            value: this.#latestTotalValue.toString(),
+            valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
+            xirr: this.#xirrStr,
+            totalCash: this.#totalCash.toString(),
+            buyCash: this.#buyCash.toString(),
+            interestCash: this.#interestCash.toString(),
+            history: baseTable.history
         };
     }
 

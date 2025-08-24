@@ -13,13 +13,39 @@ function buildSummaryTable(tableData, tableElementId) {
     tableElement.innerHTML = `
         <thead>
         <tr>
-            ${tableData.header.map(cell => `<th>${cell}</th>`).join('')}
+            <th>Index</th>
+            <th>Platform</th>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Count</th>
+            <th>Value</th>
+            <th>As Of Date</th>
+            <th>Buy</th>
+            <th>Sell</th>
+            <th>Income</th>
+            <th>Profit</th>
+            <th>XIRR</th>
+            <th>Currency</th>
+            <th>Code</th>
         </tr>
         </thead>
         <tbody>
-            ${tableData.body.map(row => `
+            ${tableData.assets.map(asset => `
                 <tr>
-                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                    <td>${asset.index}</td>
+                    <td>${asset.platformName}</td>
+                    <td>${asset.assetType}</td>
+                    <td>${asset.assetFriendlyName}</td>
+                    <td>${asset.count}</td>
+                    <td>${asset.totalCurrentValue}</td>
+                    <td>${asset.currentValueDate}</td>
+                    <td>${asset.totalBuy}</td>
+                    <td>${asset.totalSell}</td>
+                    <td>${asset.totalIncome}</td>
+                    <td>${asset.totalProfit}</td>
+                    <td>${asset.xirr}</td>
+                    <td>${asset.currency}</td>
+                    <td>${asset.assetCode}</td>
                 </tr>
             `).join('')}
         </tbody>
@@ -36,26 +62,53 @@ function buildStockHistoryTable(tableData, tableElementId) {
         throw new Error('Not a valid HTMLTableElement');
     }
 
-    // For stock history, the first 6 rows are summary rows with special formatting
-    const summaryRows = tableData.body.slice(0, 6);
-    const historyRows = tableData.body.slice(6);
-
     tableElement.innerHTML = `
         <thead>
         <tr>
-            ${tableData.header.map(cell => `<th>${cell}</th>`).join('')}
+            <th>#</th>
+            <th>Date</th>
+            <th>Change</th>
+            <th>Count</th>
+            <th>Cash</th>
+            <th>Profit</th>
+            <th>Action</th>
         </tr>
         </thead>
         <tbody>
-            ${summaryRows.map(row => `
-                <tr class="summary-row">
-                    <td colspan="2">${row[0]}</td>
-                    <td colspan="${tableData.header.length - 2}">${row[1]}</td>
-                </tr>
-            `).join('')}
-            ${historyRows.map(row => `
+            <tr class="summary-row">
+                <td colspan="2">Value</td>
+                <td>${tableData.value}</td>
+                <td colspan="4">${tableData.valueDate}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">XIRR</td>
+                <td colspan="5">${tableData.xirr}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Total Cash</td>
+                <td colspan="5">${tableData.totalCash}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Buy Cash</td>
+                <td colspan="5">${tableData.buyCash}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Sell Cash</td>
+                <td colspan="5">${tableData.sellCash}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Income Cash</td>
+                <td colspan="5">${tableData.incomeCash}</td>
+            </tr>
+            ${tableData.history.map(record => `
                 <tr>
-                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                    <td>${record.index}</td>
+                    <td>${record.date}</td>
+                    <td>${record.change}</td>
+                    <td>${record.count}</td>
+                    <td>${record.cash}</td>
+                    <td>${record.profit}</td>
+                    <td>${record.action}</td>
                 </tr>
             `).join('')}
         </tbody>
@@ -72,26 +125,28 @@ function buildCashHistoryTable(tableData, tableElementId) {
         throw new Error('Not a valid HTMLTableElement');
     }
 
-    // For cash history, the first row is a summary row with special formatting
-    const summaryRows = tableData.body.slice(0, 1);
-    const historyRows = tableData.body.slice(1);
-
     tableElement.innerHTML = `
         <thead>
         <tr>
-            ${tableData.header.map(cell => `<th>${cell}</th>`).join('')}
+            <th>#</th>
+            <th>Date</th>
+            <th>Change</th>
+            <th>Balance</th>
+            <th>Action</th>
         </tr>
         </thead>
         <tbody>
-            ${summaryRows.map(row => `
-                <tr class="summary-row">
-                    <td colspan="2">${row[0]}</td>
-                    <td colspan="${tableData.header.length - 2}">${row[1]}</td>
-                </tr>
-            `).join('')}
-            ${historyRows.map(row => `
+            <tr class="summary-row">
+                <td colspan="2">Interest Cash</td>
+                <td colspan="3">${tableData.interestCash}</td>
+            </tr>
+            ${tableData.history.map(record => `
                 <tr>
-                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                    <td>${record.index}</td>
+                    <td>${record.date}</td>
+                    <td>${record.change}</td>
+                    <td>${record.balance}</td>
+                    <td>${record.action}</td>
                 </tr>
             `).join('')}
         </tbody>
@@ -108,26 +163,49 @@ function buildBondHistoryTable(tableData, tableElementId) {
         throw new Error('Not a valid HTMLTableElement');
     }
 
-    // For bond history, the first 5 rows are summary rows with special formatting
-    const summaryRows = tableData.body.slice(0, 5);
-    const historyRows = tableData.body.slice(5);
-
     tableElement.innerHTML = `
         <thead>
         <tr>
-            ${tableData.header.map(cell => `<th>${cell}</th>`).join('')}
+            <th>#</th>
+            <th>Date</th>
+            <th>Change</th>
+            <th>Count</th>
+            <th>Cash</th>
+            <th>Profit</th>
+            <th>Action</th>
         </tr>
         </thead>
         <tbody>
-            ${summaryRows.map(row => `
-                <tr class="summary-row">
-                    <td colspan="2">${row[0]}</td>
-                    <td colspan="${tableData.header.length - 2}">${row[1]}</td>
-                </tr>
-            `).join('')}
-            ${historyRows.map(row => `
+            <tr class="summary-row">
+                <td colspan="2">Value</td>
+                <td>${tableData.value}</td>
+                <td colspan="4">${tableData.valueDate}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">XIRR</td>
+                <td colspan="5">${tableData.xirr}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Total Cash</td>
+                <td colspan="5">${tableData.totalCash}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Buy Cash</td>
+                <td colspan="5">${tableData.buyCash}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Interest Cash</td>
+                <td colspan="5">${tableData.interestCash}</td>
+            </tr>
+            ${tableData.history.map(record => `
                 <tr>
-                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                    <td>${record.index}</td>
+                    <td>${record.date}</td>
+                    <td>${record.change}</td>
+                    <td>${record.count}</td>
+                    <td>${record.cash}</td>
+                    <td>${record.profit}</td>
+                    <td>${record.action}</td>
                 </tr>
             `).join('')}
         </tbody>
@@ -144,26 +222,49 @@ function buildIndexHistoryTable(tableData, tableElementId) {
         throw new Error('Not a valid HTMLTableElement');
     }
 
-    // For index history, the first 5 rows are summary rows with special formatting
-    const summaryRows = tableData.body.slice(0, 5);
-    const historyRows = tableData.body.slice(5);
-
     tableElement.innerHTML = `
         <thead>
         <tr>
-            ${tableData.header.map(cell => `<th>${cell}</th>`).join('')}
+            <th>#</th>
+            <th>Date</th>
+            <th>Change</th>
+            <th>Count</th>
+            <th>Cash</th>
+            <th>Profit</th>
+            <th>Action</th>
         </tr>
         </thead>
         <tbody>
-            ${summaryRows.map(row => `
-                <tr class="summary-row">
-                    <td colspan="2">${row[0]}</td>
-                    <td colspan="${tableData.header.length - 2}">${row[1]}</td>
-                </tr>
-            `).join('')}
-            ${historyRows.map(row => `
+            <tr class="summary-row">
+                <td colspan="2">Value</td>
+                <td>${tableData.value}</td>
+                <td colspan="4">${tableData.valueDate}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">XIRR</td>
+                <td colspan="5">${tableData.xirr}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Total Cash</td>
+                <td colspan="5">${tableData.totalCash}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Buy Cash</td>
+                <td colspan="5">${tableData.buyCash}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="2">Sell Cash</td>
+                <td colspan="5">${tableData.sellCash}</td>
+            </tr>
+            ${tableData.history.map(record => `
                 <tr>
-                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                    <td>${record.index}</td>
+                    <td>${record.date}</td>
+                    <td>${record.change}</td>
+                    <td>${record.count}</td>
+                    <td>${record.cash}</td>
+                    <td>${record.profit}</td>
+                    <td>${record.action}</td>
                 </tr>
             `).join('')}
         </tbody>

@@ -54,15 +54,11 @@ class CashHolding {
 
     getHistoryTableView() {
         const baseTable = getCashHistoryTableView(this.#history);
-        // Create summary row to be added at the top
-        const summaryRows = [
-            ['Interest Cash', this.#cashInterestSum.toString(), '', '', '']
-        ];
 
         return {
-            header: baseTable.header,
-            body: [...summaryRows, ...baseTable.body],
-            type: 'cash-history'
+            type: 'cash-history',
+            interestCash: this.#cashInterestSum.toString(),
+            history: baseTable.history
         };
     }
 }

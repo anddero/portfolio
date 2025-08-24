@@ -183,20 +183,17 @@ class StockHolding {
 
     getHistoryTableView() {
         const baseTable = getSimpleAssetHistoryTableView(this.#history);
-        // Create summary rows to be added at the top
-        const summaryRows = [
-            ['Value', this.#latestTotalValue.toString(), formatLocalDateForView(this.#latestUnitValueAndDate.date), '', '', '', ''],
-            ['XIRR', this.#xirrStr, '', '', '', '', ''],
-            ['Total Cash', this.#totalCash.toString(), '', '', '', '', ''],
-            ['Buy Cash', this.#buyCash.toString(), '', '', '', '', ''],
-            ['Sell Cash', this.#sellCash.toString(), '', '', '', '', ''],
-            ['Income Cash', this.#incomeCash.toString(), '', '', '', '', '']
-        ];
 
         return {
-            header: baseTable.header,
-            body: [...summaryRows, ...baseTable.body],
-            type: 'stock-history'
+            type: 'stock-history',
+            value: this.#latestTotalValue.toString(),
+            valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
+            xirr: this.#xirrStr,
+            totalCash: this.#totalCash.toString(),
+            buyCash: this.#buyCash.toString(),
+            sellCash: this.#sellCash.toString(),
+            incomeCash: this.#incomeCash.toString(),
+            history: baseTable.history
         };
     }
 

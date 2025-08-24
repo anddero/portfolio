@@ -152,15 +152,20 @@ function getCashHistoryTableView(history) {
         throw new Error('History cannot be empty.');
     }
     let currentValue = new Decimal(0);
+    const historyRecords = history.map((record, i) => {
+        currentValue = currentValue.plus(record.valueChange);
+        return {
+            index: i + 1,
+            date: formatLocalDateForView(record.date),
+            change: record.valueChange.toString(),
+            balance: currentValue.toString(),
+            action: record.type
+        };
+    }).toReversed();
+
     return {
-        header: ['#', 'Date', 'Change', 'Balance', 'Action'],
-        body: history.map((record, i) => [
-            (i + 1).toString(), // Row number
-            formatLocalDateForView(record.date),
-            record.valueChange.toString(), // Convert Decimal to string for display
-            (currentValue = currentValue.plus(record.valueChange)).toString(),
-            record.type // Use the type directly for display
-        ]).toReversed()
+        type: 'cash-history',
+        history: historyRecords
     };
 }
 
@@ -173,17 +178,22 @@ function getSimpleAssetHistoryTableView(history) {
     }
     let currentCount = new Decimal(0);
     let currentCash = new Decimal(0);
-    const otherRows = history.map((record, index) => [
-        (index + 1).toString(), // Row number
-        formatLocalDateForView(record.date),
-        record.valueChange.toString(), // Convert Decimal to string for display
-        (currentCount = currentCount.plus(record.valueChange)).toString(),
-        record.cashChange.toString(), // Convert Decimal to string for display
-        (currentCash = currentCash.plus(record.cashChange)).toString(),
-        record.type // Use the type directly for display
-    ]).toReversed();
+    const historyRecords = history.map((record, index) => {
+        currentCount = currentCount.plus(record.valueChange);
+        currentCash = currentCash.plus(record.cashChange);
+        return {
+            index: index + 1,
+            date: formatLocalDateForView(record.date),
+            change: record.valueChange.toString(),
+            count: currentCount.toString(),
+            cash: record.cashChange.toString(),
+            profit: currentCash.toString(),
+            action: record.type
+        };
+    }).toReversed();
+
     return {
-        header: ['#', 'Date', 'Change', 'Count', 'Cash', 'Profit', 'Action'],
-        body: otherRows
+        type: 'asset-history',
+        history: historyRecords
     };
 }

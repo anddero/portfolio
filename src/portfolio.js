@@ -142,23 +142,23 @@ class Portfolio {
     getSummaryTableView() {
         const summary = this.getSummary();
         return {
-            header: ['Index', 'Platform', 'Type', 'Name', 'Count', 'Value', 'As Of Date', 'Buy', 'Sell', 'Income', 'Profit', "XIRR", 'Currency', 'Code'],
-            body: summary.map((record, index) => [
-                (index + 1).toString(),
-                record.platformName,
-                record.assetType,
-                record.assetFriendlyName,
-                record.count,
-                record.totalCurrentValue,
-                formatLocalDateForView(record.currentValueDate),
-                record.totalBuy,
-                record.totalSell,
-                record.totalIncome,
-                record.totalProfit,
-                record.xirr,
-                record.currency,
-                record.assetCode
-            ])
+            type: 'portfolio-summary',
+            assets: summary.map((record, index) => ({
+                index: index + 1,
+                platformName: record.platformName,
+                assetType: record.assetType,
+                assetFriendlyName: record.assetFriendlyName,
+                count: record.count,
+                totalCurrentValue: record.totalCurrentValue,
+                currentValueDate: formatLocalDateForView(record.currentValueDate),
+                totalBuy: record.totalBuy,
+                totalSell: record.totalSell,
+                totalIncome: record.totalIncome,
+                totalProfit: record.totalProfit,
+                xirr: record.xirr,
+                currency: record.currency,
+                assetCode: record.assetCode
+            }))
         };
     }
 
