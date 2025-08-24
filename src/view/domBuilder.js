@@ -281,35 +281,77 @@ function buildAssetHistoryTables(tablesData, divElementId) {
         throw new Error('Not a HTMLDivElement');
     }
 
-    // Construct the tables HTML
-    divElement.innerHTML = tablesData.tables.map(table => `
-        <div class="table-container">
-            <h2>${table.title}</h2>
-            <table id="${table.id}">
-            </table>
-        </div>
-    `).join('');
+    // Build HTML for all table containers grouped by type
+    let htmlContent = '';
 
-    // Build each individual table based on its properties
-    tablesData.tables.forEach(table => {
-        const tableData = table.table;
+    // Add Cash tables
+    if (tablesData.cashList && tablesData.cashList.length > 0) {
+        htmlContent += '<h1>Cash Holdings</h1>';
+        tablesData.cashList.forEach(table => {
+            htmlContent += `
+                <div class="table-container">
+                    <h2>${table.title}</h2>
+                    <table id="${table.id}"></table>
+                </div>
+            `;
+        });
+    }
 
-        // Determine table type based on properties present
-        if (tableData.hasOwnProperty('interestCash') && !tableData.hasOwnProperty('value')) {
-            // Cash history table - has interestCash but no value/xirr
-            buildCashHistoryTable(tableData, table.id);
-        } else if (tableData.hasOwnProperty('incomeCash')) {
-            // Stock history table - has incomeCash (unique to stocks)
-            buildStockHistoryTable(tableData, table.id);
-        } else if (tableData.hasOwnProperty('interestCash') && tableData.hasOwnProperty('value')) {
-            // Bond history table - has both interestCash and value/xirr
-            buildBondHistoryTable(tableData, table.id);
-        } else if (tableData.hasOwnProperty('sellCash')) {
-            // Index fund history table - has sellCash but not incomeCash
-            buildIndexHistoryTable(tableData, table.id);
-        } else {
-            // Fallback to summary table building
-            buildSummaryTable(tableData, table.id);
-        }
+    // Add Stock tables
+    if (tablesData.stockList && tablesData.stockList.length > 0) {
+        htmlContent += '<h1>Stock Holdings</h1>';
+        tablesData.stockList.forEach(table => {
+            htmlContent += `
+                <div class="table-container">
+                    <h2>${table.title}</h2>
+                    <table id="${table.id}"></table>
+                </div>
+            `;
+        });
+    }
+
+    // Add Index Fund tables
+    if (tablesData.indexFundList && tablesData.indexFundList.length > 0) {
+        htmlContent += '<h1>Index Fund Holdings</h1>';
+        tablesData.indexFundList.forEach(table => {
+            htmlContent += `
+                <div class="table-container">
+                    <h2>${table.title}</h2>
+                    <table id="${table.id}"></table>
+                </div>
+            `;
+        });
+    }
+
+    // Add Bond tables
+    if (tablesData.bondList && tablesData.bondList.length > 0) {
+        htmlContent += '<h1>Bond Holdings</h1>';
+        tablesData.bondList.forEach(table => {
+            htmlContent += `
+                <div class="table-container">
+                    <h2>${table.title}</h2>
+                    <table id="${table.id}"></table>
+                </div>
+            `;
+        });
+    }
+
+    divElement.innerHTML = htmlContent;
+
+    // Build each individual table with the appropriate builder function
+    tablesData.cashList?.forEach(table => {
+        buildCashHistoryTable(table.table, table.id);
+    });
+
+    tablesData.stockList?.forEach(table => {
+        buildStockHistoryTable(table.table, table.id);
+    });
+
+    tablesData.indexFundList?.forEach(table => {
+        buildIndexHistoryTable(table.table, table.id);
+    });
+
+    tablesData.bondList?.forEach(table => {
+        buildBondHistoryTable(table.table, table.id);
     });
 }

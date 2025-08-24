@@ -162,12 +162,42 @@ class Portfolio {
     }
 
     getAssetHistoryTablesView() {
-        let tablesList = [];
-        this.#platforms.values().forEach(platform => platform.getAllHoldings().forEach(holding => tablesList.push({
-            title: `${holding.getFriendlyName()} (${holding.getCurrency()}, ${platform.getName()})`,
-            id: `${platform.getName()}-${holding.getCode()}`,
-            table: holding.getHistoryTableView()
-        })));
-        return { tables: tablesList };
+        const cashList = [];
+        const stockList = [];
+        const indexFundList = [];
+        const bondList = [];
+
+        this.#platforms.values().forEach(platform => {
+            platform.getCashHoldings().forEach(holding => cashList.push({
+                title: `${holding.getFriendlyName()} (${holding.getCurrency()}, ${platform.getName()})`,
+                id: `${platform.getName()}-${holding.getCode()}`,
+                table: holding.getHistoryTableView()
+            }));
+
+            platform.getStockHoldings().forEach(holding => stockList.push({
+                title: `${holding.getFriendlyName()} (${holding.getCurrency()}, ${platform.getName()})`,
+                id: `${platform.getName()}-${holding.getCode()}`,
+                table: holding.getHistoryTableView()
+            }));
+
+            platform.getIndexFundHoldings().forEach(holding => indexFundList.push({
+                title: `${holding.getFriendlyName()} (${holding.getCurrency()}, ${platform.getName()})`,
+                id: `${platform.getName()}-${holding.getCode()}`,
+                table: holding.getHistoryTableView()
+            }));
+
+            platform.getBondHoldings().forEach(holding => bondList.push({
+                title: `${holding.getFriendlyName()} (${holding.getCurrency()}, ${platform.getName()})`,
+                id: `${platform.getName()}-${holding.getCode()}`,
+                table: holding.getHistoryTableView()
+            }));
+        });
+
+        return {
+            cashList,
+            stockList,
+            indexFundList,
+            bondList
+        };
     }
 }
