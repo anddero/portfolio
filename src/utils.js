@@ -328,6 +328,28 @@ function validateCurrencyInput(currency) {
         .and(validateRegex);
 }
 
+/**
+ * Convert a year-month-day combination into a Date object.
+ * @param year {number} The year.
+ * @param month {number} The month (1-12).
+ * @param day {number} The day (1-31).
+ * @returns {VRes} A VRes holding a Date object if valid, or an error message if invalid.
+ */
+function makeDate(year, month, day) {
+    validateConcreteInt(year).getOrThrow('year');
+    validateIntInRange(month, 1, 12).getOrThrow('month');
+    validateIntInRange(day, 1, 31).getOrThrow('day');
+    const dateObj = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
+
+    // Check if the date is valid (e.g., not 2023.02.31)
+    if (dateObj.getDate() !== day ||
+        dateObj.getMonth() + 1 !== month ||
+        dateObj.getFullYear() !== year) {
+        return new VRes(`Date does not exist in calendar`);
+    }
+    return new VRes(dateObj);
+}
+
 // Validate that the date string in format "YYYY.MM.DD" has correct format and is a valid date.
 // Return a VRes with a Date object if valid.
 function parseDateInput(dateStr) {
@@ -343,21 +365,7 @@ function parseDateInput(dateStr) {
         const year = parseInt(dateMatch[1], 10);
         const month = parseInt(dateMatch[2], 10);
         const day = parseInt(dateMatch[3], 10);
-        if (day < 1 || day > 31) {
-            return new VRes(`Invalid day`);
-        }
-        if (month < 1 || month > 12) {
-            return new VRes(`Invalid month`);
-        }
-        const dateObj = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
-
-        // Check if the date is valid (e.g., not 2023.02.31)
-        if (dateObj.getDate() !== day ||
-            dateObj.getMonth() + 1 !== month ||
-            dateObj.getFullYear() !== year) {
-            return new VRes(`Date does not exist in calendar`);
-        }
-        return new VRes(dateObj);
+        return makeDate(year, month, day);
     };
     return validateNonBlankString(dateStr).and(validateRegex);
 }
@@ -398,6 +406,49 @@ function formatLocalDateForView(date) {
 }
 
 /**
+ * Get the date part of a Date object (year, month, day) as an object.
+ * @param date {Date} The Date object to get the date part from.
+ * @returns {{year: number, month: number, day: number}} An object containing the year, month, and day.
+ */
+function getLocalDate(date) {
+    if (!(date instanceof Date)) {
+        throw new Error('Not a Date');
+    }
+    return {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1, // Months are 0-indexed in JavaScript Date
+        day: date.getDate()
+    };
+}
+
+/**
+ * Count the days from a to b. Both a and b will be converted to local time first and then compared, considering only
+ * the date and not the exact time.
+ * @param a {Date} A timestamp.
+ * @param b {Date} A timestamp.
+ * @returns {number} The number of days between a and b as an integer.
+ */
+function countDays(a, b) {
+    if (!(a instanceof Date) || !(b instanceof Date)) {
+        throw new Error('Not a Date');
+    }
+    if (b < a) {
+        throw new Error('b must be greater than a');
+    }
+    if (b === a) {
+        return 0;
+    }
+    const aLocalDatePart = getLocalDate(a);
+    const bLocalDatePart = getLocalDate(b);
+    const aDate = makeDate(aLocalDatePart.year, aLocalDatePart.month, aLocalDatePart.day).getOrThrow('aLocalDatePart');
+    const bDate = makeDate(bLocalDatePart.year, bLocalDatePart.month, bLocalDatePart.day).getOrThrow('bLocalDatePart');
+    // Get the difference between the dates in whatever unit JS gives us
+    const diff = bDate - aDate;
+    // JS unit is milliseconds, so convert to days and round to the nearest integer
+    return Math.round(diff / (1000 * 60 * 60 * 24));
+}
+
+/**
  * Calculates the XIRR (Extended Internal Rate of Return) based on the given cash flow.
  * @param {Array} dateAndCashFlowPairs An array of arrays, where each inner array contains two elements:
  *                                     the date (as a Date object) and the cash flow amount (as a Decimal).
@@ -430,6 +481,11 @@ function calculateXirr(dateAndCashFlowPairs) {
     // Data validation (expected failures)
     if (dateAndCashFlowPairs.length < 2) {
         return new VRes('At least two values are required for XIRR calculation');
+    }
+
+    // Workaround for a bug where XIRR breaks if the last value is 0 (which shouldn't affect the actual outcome)
+    if (dateAndCashFlowPairs[dateAndCashFlowPairs.length - 1][1].isZero()) {
+        dateAndCashFlowPairs.pop();
     }
 
     // Prepare cash flows for XIRR calculation as array

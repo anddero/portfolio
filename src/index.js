@@ -11,7 +11,7 @@ class IndexFundHolding {
     #totalCash;
     #latestUnitValueAndDate; // {value: Decimal, date: Date}
     #latestTotalValue;
-    #xirr; // {value: Decimal|null, error: string|null}
+    #xirr;
     #history; // Array of IndexFundChangeRecord objects
 
     constructor(code, friendlyName, currency) {
@@ -27,7 +27,7 @@ class IndexFundHolding {
         this.#totalCash = new Decimal(0);
         this.#latestUnitValueAndDate = null;
         this.#latestTotalValue = null;
-        this.#xirr = { value: null, error: "not calculated yet" };
+        this.#xirr = null;
         this.#history = [];
     }
 
@@ -59,8 +59,9 @@ class IndexFundHolding {
         return this.#totalCash;
     }
 
-    getXirrStrForDisplay() {
-        return this.#xirr.error ? `Error: ${this.#xirr.error}` : (this.#xirr.value ? `${this.#xirr.value.times(100).toFixed(1)}%` : "N/A");
+    getXirr() {
+        validateConcreteDecimal(this.#xirr).getOrThrow('this.#xirr');
+        return this.#xirr;
     }
 
     getTotalCurrentValue() {
@@ -139,12 +140,7 @@ class IndexFundHolding {
             // Calculate the total value of all shares.
             this.#latestTotalValue = this.#shares.times(this.#latestUnitValueAndDate.value);
             // Calculate XIRR.
-            const xirr = this.getXirr().extend("XIRR calculation failed");
-            if (xirr.isSuccess()) {
-                this.#xirr = { value: xirr.getValue(), error: null };
-            } else {
-                this.#xirr = { value: null, error: xirr.getMessage(true) };
-            }
+            this.#xirr = this.calculateXirr();
         }
     }
 
@@ -154,7 +150,7 @@ class IndexFundHolding {
         return {
             value: this.#latestTotalValue.toNumber(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
-            xirr: this.getXirrStrForDisplay(),
+            xirr: this.#xirr.toNumber(),
             totalCash: this.#totalCash.toNumber(),
             buyCash: this.#buyCash.toNumber(),
             sellCash: this.#sellCash.toNumber(),
@@ -163,17 +159,17 @@ class IndexFundHolding {
     }
 
     /**
-     * Calculates the XIRR (Extended Internal Rate of Return) for this index fund holding
+     * Calculates the XIRR (Extended Internal Rate of Return) for this bond holding
      * based on its transaction history.
      */
-    getXirr() {
+    calculateXirr() {
         validateConcreteDecimal(this.#latestTotalValue).getOrThrow('latestTotalValue');
         const finalPotentialInflow = this.#latestTotalValue;
-        return calculateXirr(
-            this.#history.map(record => ([
-                record.date,
-                record.cashChange,
-            ])).concat([[new Date(), finalPotentialInflow]])
+        return xirr(
+            this.#history.map(record => ({
+                time: record.date,
+                cashFlow: record.cashChange.toNumber(),
+            })).concat([{time: this.#latestUnitValueAndDate.date, cashFlow: finalPotentialInflow.toNumber()}])
         );
     }
 }
