@@ -78,8 +78,7 @@
  *     a cash inflow or outflow of an asset and the time when it was made. The given time is first converted to a
  *     local time, and then only the date part is kept (exact time ignored).
  *     Must contain at least one positive and one negative cash flow.
- * @returns {number} - The XIRR of the asset.
- * @throws {Error} - If the input is invalid or if XIRR calculation failed.
+ * @returns {number} - The XIRR of the asset or NaN if the calculation ran out of budget.
  */
 function xirr(transactions) {
     if (!Array.isArray(transactions)) {
@@ -112,56 +111,151 @@ function xirr(transactions) {
         days: countDays(firstDate, transaction.time)
     }));
 
-    // Begin by guessing a daily growth rate of 0%.
-    let dailyGrowthRate = 0.0;
-    let step = 0.01;
-    let lastNfv = 0.0;
-    const stepCoefficient = 0.8;
-    const minStep = 0.00000000000001;
-    const maxStep = 1000.0;
-    const minAbsNfv = 0.0000001;
+    // Begin by binary search in the positive domain.
+    return findAnyRoot(
+        -0.02, +0.02,
+        10_000, 0.0000001,
+        (r) => simulateNetFutureValue(transactions, r)
+    );
 
-    // Iterate until the guess converges.
-    for (let i = 0; i < 1000; ++i) {
-        const nfv = simulateNetFutureValue(transactions, dailyGrowthRate);
-        // End condition
-        if (nfv === 0.0 || Math.abs(nfv) < minAbsNfv) {
-            return Math.pow(dailyGrowthRate, 365) - 1.0;
-        }
-        // Faulty end condition
-        if (Math.abs(step) < minStep) {
-            throw new Error(`Step too small on iteration ${i}: ${step}`);
-        }
-        if (Math.abs(step) > maxStep) {
-            throw new Error(`Step too large on iteration ${i}: ${step}`);
-        }
-        // Check if we got closer. If not, change the step direction.
-        if (lastNfv !== 0.0 && Math.abs(nfv) > Math.abs(lastNfv)) {
-            step *= -1.0;
-        }
-        // Adjust the step magnitude.
-        if (lastNfv === 0.0) {
-            // If this was the first step, increasing the step size.
-            step /= stepCoefficient;
-        }
-        else if (lastNfv * nfv < 0.0) {
-            // If the sign changed, decrease the step size.
-            step *= stepCoefficient;
-        }
-        else if (Math.abs(nfv) > Math.abs(lastNfv) * 0.5) {
-            // If the step got us less than 50% closer to the target, increase the step size.
-            step /= stepCoefficient;
-        }
-        else {
-            // Otherwise decrease the step size.
-            step *= stepCoefficient;
-        }
-        // Update the guess.
-        dailyGrowthRate += step;
-        lastNfv = nfv;
-    }
-
-    throw new Error(`XIRR calculation failed after 1000 iterations`);
+    // let dailyGrowthRate = 0.01;
+    // let binarySearch = new BinarySearch(dailyGrowthRate, dailyGrowthRate);
+    // let dailyGrowthRate = 0.02;
+    // let step = 0.01;
+    // let lastNfv = 0.0;
+    // let lowerBound = -1.0;
+    // let upperBound = 9999999999999999999999999.9;
+    // const stepCoefficient = 1.25;
+    // const minStep = 0.00000000000001;
+    // const maxStep = 1000.0;
+    // const minAbsNfv = 0.0000001;
+    //
+    // // Iterate until the guess converges.
+    // for (let i = 0; i < 1000; ++i) {
+    //     const nfv = simulateNetFutureValue(transactions, dailyGrowthRate);
+    //     // End condition
+    //     if (nfv === 0.0 || Math.abs(nfv) < minAbsNfv) {
+    //         return Math.pow(dailyGrowthRate, 365) - 1.0;
+    //     }
+    //     // Faulty end condition
+    //     if (Math.abs(step) < minStep) {
+    //         throw new Error(`Step too small on iteration ${i}: ${step}`);
+    //     }
+    //     if (Math.abs(step) > maxStep) {
+    //         throw new Error(`Step too large on iteration ${i}: ${step}`);
+    //     }
+    //     // Check which direction and how much we should move.
+    //     const isFirstStep = i === 0;
+    //     const signChanged = lastNfv * nfv < 0.0;
+    //     const distanceIncreased = Math.abs(nfv) > Math.abs(lastNfv);
+    //     const distanceSame = Math.abs(nfv) === Math.abs(lastNfv);
+    //
+    //     if (isFirstStep) {
+    //         // Start off with a small positive step.
+    //         step = 0.5;
+    //     } else if (signChanged || distanceIncreased) {
+    //         // Move a smaller step in the opposite direction.
+    //         step /= -stepCoefficient;
+    //     } else if (distanceSame) {
+    //         // Move a bigger step in the positive direction. Most likely, we are stuck in negative territory.
+    //         // Forbid moving into the negative territory again to avoid getting stuck in a loop.
+    //         if (dailyGrowthRate < 0) {
+    //             lowerBound = Math.max(dailyGrowthRate, dailyGrowthRate - step);
+    //         }
+    //         step = Math.abs(step * stepCoefficient);
+    //     } else if (Math.abs(nfv) > Math.abs(lastNfv) * 0.5) {
+    //         // If the step got us less than 50% closer, take a bigger step in the same direction.
+    //         step *= stepCoefficient;
+    //     } else {
+    //         // Take a smaller step in the same direction. We are quite sure of the direction now, so we can forbid
+    //         // moving further than the previous value.
+    //         if (step < 0) {
+    //             upperBound = dailyGrowthRate
+    //         } else {
+    //             lowerBound = Math.max(dailyGrowthRate, dailyGrowthRate - step);
+    //         }
+    //         step /= stepCoefficient;
+    //     }
+    //     // Update the guess.
+    //     dailyGrowthRate += step;
+    //     if (dailyGrowthRate <= -1.0) {
+    //         throw new Error(`Growth rate too small: ${dailyGrowthRate}`)
+    //     }
+    //     if (dailyGrowthRate < lowerBound) {
+    //         dailyGrowthRate = lowerBound;
+    //     }
+    //     lastNfv = nfv;
+    // }
+    //
+    // // Begin by guessing the minimum possible growth rate of -99.999999999%.
+    // let dailyGrowthRate = -0.99999999999;
+    // let step = 0.1;
+    // let lastNfv = 0.0;
+    // let lowerBound = -1.0;
+    // let upperBound = 9999999999999999999999999.9;
+    // const stepCoefficient = 1.25;
+    // const minStep = 0.00000000000001;
+    // const maxStep = 1000.0;
+    // const minAbsNfv = 0.0000001;
+    //
+    // // Iterate until the guess converges.
+    // for (let i = 0; i < 1000; ++i) {
+    //     const nfv = simulateNetFutureValue(transactions, dailyGrowthRate);
+    //     // End condition
+    //     if (nfv === 0.0 || Math.abs(nfv) < minAbsNfv) {
+    //         return Math.pow(dailyGrowthRate, 365) - 1.0;
+    //     }
+    //     // Faulty end condition
+    //     if (Math.abs(step) < minStep) {
+    //         throw new Error(`Step too small on iteration ${i}: ${step}`);
+    //     }
+    //     if (Math.abs(step) > maxStep) {
+    //         throw new Error(`Step too large on iteration ${i}: ${step}`);
+    //     }
+    //     // Check which direction and how much we should move.
+    //     const isFirstStep = i === 0;
+    //     const signChanged = lastNfv * nfv < 0.0;
+    //     const distanceIncreased = Math.abs(nfv) > Math.abs(lastNfv);
+    //     const distanceSame = Math.abs(nfv) === Math.abs(lastNfv);
+    //
+    //     if (isFirstStep) {
+    //         // Start off with a small positive step.
+    //         step = 0.5;
+    //     } else if (signChanged || distanceIncreased) {
+    //         // Move a smaller step in the opposite direction.
+    //         step /= -stepCoefficient;
+    //     } else if (distanceSame) {
+    //         // Move a bigger step in the positive direction. Most likely, we are stuck in negative territory.
+    //         // Forbid moving into the negative territory again to avoid getting stuck in a loop.
+    //         if (dailyGrowthRate < 0) {
+    //             lowerBound = Math.max(dailyGrowthRate, dailyGrowthRate - step);
+    //         }
+    //         step = Math.abs(step * stepCoefficient);
+    //     } else if (Math.abs(nfv) > Math.abs(lastNfv) * 0.5) {
+    //         // If the step got us less than 50% closer, take a bigger step in the same direction.
+    //         step *= stepCoefficient;
+    //     } else {
+    //         // Take a smaller step in the same direction. We are quite sure of the direction now, so we can forbid
+    //         // moving further than the previous value.
+    //         if (step < 0) {
+    //             upperBound = dailyGrowthRate
+    //         } else {
+    //             lowerBound = Math.max(dailyGrowthRate, dailyGrowthRate - step);
+    //         }
+    //         step /= stepCoefficient;
+    //     }
+    //     // Update the guess.
+    //     dailyGrowthRate += step;
+    //     if (dailyGrowthRate <= -1.0) {
+    //         throw new Error(`Growth rate too small: ${dailyGrowthRate}`)
+    //     }
+    //     if (dailyGrowthRate < lowerBound) {
+    //         dailyGrowthRate = lowerBound;
+    //     }
+    //     lastNfv = nfv;
+    // }
+    //
+    // throw new Error(`XIRR calculation failed after 1000 iterations`);
 }
 
 /**
@@ -211,6 +305,13 @@ function simulateNetFutureValue(transactions, growthRate) {
             throw new Error(`Invalid transaction.days: ${transaction.days}`);
         }
     });
+    if (typeof growthRate !== 'number' || isNaN(growthRate) || !isFinite(growthRate)) {
+        throw new Error(`Invalid growthRate: ${growthRate}`);
+    }
+    if (growthRate <= -1.0) {
+        // The minimum growth rate is -100%. Even exactly -100% doesn't really make sense.
+        throw new Error(`Growth rate too small: ${growthRate}`)
+    }
     // Sort chronologically
     transactions = transactions.sort((a, b) => a.days - b.days);
     // Start off with balance 0 on day 0
@@ -245,6 +346,10 @@ function simulateFutureValue(currentValue, growthRate, days) {
     }
     if (typeof growthRate !== 'number' || isNaN(growthRate) || !isFinite(growthRate)) {
         throw new Error(`Invalid growthRate: ${growthRate}`);
+    }
+    if (growthRate <= -1.0) {
+        // The minimum growth rate is -100%. Even exactly -100% doesn't really make sense.
+        throw new Error(`Growth rate too small: ${growthRate}`)
     }
     if (typeof days !== 'number' || isNaN(days) || !isFinite(days)) {
         throw new Error(`Invalid days: ${days}`);

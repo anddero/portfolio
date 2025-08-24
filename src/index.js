@@ -60,7 +60,6 @@ class IndexFundHolding {
     }
 
     getXirr() {
-        validateConcreteDecimal(this.#xirr).getOrThrow('this.#xirr');
         return this.#xirr;
     }
 
@@ -140,7 +139,7 @@ class IndexFundHolding {
             // Calculate the total value of all shares.
             this.#latestTotalValue = this.#shares.times(this.#latestUnitValueAndDate.value);
             // Calculate XIRR.
-            this.#xirr = this.calculateXirr();
+            this.#xirr = new Decimal(this.calculateXirr());
         }
     }
 

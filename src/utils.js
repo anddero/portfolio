@@ -204,7 +204,7 @@ function validateConcreteDecimal(value) {
     if (!value.isFinite()) {
         return new VRes('Not finite');
     }
-    return new VRes();
+    return new VRes(value);
 }
 
 function validateNonZeroConcreteDecimal(value) {
@@ -512,6 +512,175 @@ function calculateXirr(dateAndCashFlowPairs) {
         return new VRes('XIRR result not finite');
     }
     return new VRes(new Decimal(result));
+}
+
+/**
+ * Run a binary search to find a root of a continuous mathematical function in range [lowerBound, upperBound].
+ * It's not guaranteed that a root is found even if it exists.
+ * @param lowerBound {number} The lower bound of the search range.
+ * @param upperBound {number} The upper bound of the search range.
+ * @param budget {number} The maximum number of y=fn(x) evaluations to perform before giving up. It is more of a
+ *                        guideline to limit segmentation of the search range. If a segment with a root has already
+ *                        been found, then the binary search will be finished even if it exceeds the budget.
+ * @param delta {number} The maximum absolute error to determine when to stop the convergence.
+ * @param fn {number} A potentially heavy function y=fn(x) to check the y value at a given x.
+ * @returns {number} The numeric value (x: |fn(x)| <= delta) found in the search range or NaN if out of budget.
+ */
+function findAnyRoot(lowerBound, upperBound, budget, delta, fn) {
+    let segments = 2;
+    for (let i = 0; i < 100; ++i) {
+        if (segments > budget) {
+            return NaN;
+        }
+        const crossing = findZeroCrossing(lowerBound, upperBound, segments, fn);
+        budget -= segments;
+        if (crossing === null) {
+            segments *= 2;
+            continue;
+        }
+        const binarySearch = new BinarySearch(crossing.a, crossing.b);
+        for (let j = 0; j < 1000; ++j) {
+            const m = binarySearch.getMid();
+            const y_a = fn(binarySearch.getLowerBound());
+            const y_m = fn(m);
+            const y_b = fn(binarySearch.getUpperBound());
+            if (Math.abs(y_a) <= delta) {
+                return binarySearch.getLowerBound();
+            }
+            if (Math.abs(y_m) <= delta) {
+                return m;
+            }
+            if (Math.abs(y_b) <= delta) {
+                return binarySearch.getUpperBound();
+            }
+            if (y_a * y_m < 0) {
+                binarySearch.shrink(false);
+            } else if (y_m * y_b < 0) {
+                binarySearch.shrink(true);
+            }
+        }
+        throw new Error('Binary search did not complete in 1000 iterations');
+    }
+    return NaN;
+}
+
+/**
+ * Divide a function into linear segments and find the left-most segment that crosses 0. The segments are linear
+ * approximations, thus any segment might not contain a root, or might contain fewer roots, than the actual function.
+ * @param lowerBound {number} The lower bound of the search range.
+ * @param upperBound {number} The upper bound of the search range.
+ * @param nSegments {number} The number of segments to divide the search range into.
+ * @param fn {number} A potentially heavy function y=fn(x) to check the y value at a given x. The function makes
+ *                    at most (nSegments + 1) evaluations.
+ * @returns {{a: number, b: number} | null} A segment [a, b] that crosses fn value 0. May be null.
+ */
+function findZeroCrossing(lowerBound, upperBound, nSegments, fn) {
+    const segmentLength = (upperBound - lowerBound) / nSegments;
+    let x = lowerBound;
+    let y = fn(x);
+    for (let i = 0; i < nSegments; ++i) {
+        const x2 = x + segmentLength;
+        const y2 = fn(x2);
+        if (y * y2 < 0) {
+            return { a: x, b: x2 };
+        }
+        x = x2;
+        y = y2;
+    }
+    return null;
+}
+
+/**
+ * Run a binary search to find a numeric value in range [lowerBound, infinity).
+ * @param lowerBound The absolute lower bound of the search range.
+ * @param upperBound The initial upper bound of the search range which can be expanded.
+ * @param fnTransform A potentially heavy function to transform the guessed number from the binary search range into a
+ *                    comparable number for evaluation. The target of the search is to converge this number towards 0.
+ *                    A higher absolute value of the transformed number signals wandering away from the target.
+ *                    A lower absolute value of the transformed number signals convergence towards the target.
+ *                    The transform function should be weakly monotonic, but the direction is irrelevant.
+ *                    The search is started at the lower bound, which should have a discrete transform value.
+ * @param fnDone A function to check the transformed number and decide whether to stop the search.
+ * @returns {number} The numeric value found in the search range. Or NaN if the search doesn't converge.
+ */
+function runPositiveExponentialBinarySearch(lowerBound, upperBound, fnTransform, fnDone) {
+    const binarySearch = new BinarySearch(lowerBound, upperBound);
+    let prevV = lowerBound;
+    let prevT = fnTransform(lowerBound);
+    let expanding = true; // Start by expanding the search range
+    for (let i = 0; i < 10000; ++i) {
+        // Check for done condition
+        if (fnDone(prevT)) {
+            return prevV;
+        }
+        // Get the next guess and transform
+        const nextV = binarySearch.getMid();
+        const nextT = fnTransform(nextV);
+        let directionUp = nextV > prevV;
+        // Check if the transform sign changed, which signals stepping over target
+        if (prevT * nextT < 0.0) {
+            // If we step over target, start shrinking and look back in the opposite direction
+            directionUp = !directionUp;
+            expanding = false;
+        }
+        // Check if the transform increased, which signals wandering away from the target
+        else if (Math.abs(nextT) > Math.abs(prevT)) {
+            return NaN; // Wandering away means no convergence possible, because we always know the direction.
+        }
+        // Update state
+        if (expanding) {
+            binarySearch.expand(directionUp);
+        } else {
+            binarySearch.shrink(directionUp);
+        }
+        prevV = nextV;
+        prevT = nextT;
+    }
+}
+
+class BinarySearch {
+    #lowerBound;
+    #upperBound;
+
+    constructor(lowerBound, upperBound) {
+        this.#lowerBound = lowerBound;
+        this.#upperBound = upperBound;
+    }
+
+    length() {
+        return this.#upperBound - this.#lowerBound;
+    }
+
+    getMid() {
+        return this.#lowerBound + this.length() / 2.0;
+    }
+
+    getLowerBound() {
+        return this.#lowerBound;
+    }
+
+    getUpperBound() {
+        return this.#upperBound;
+    }
+
+    shrink(up) {
+        if (up) {
+            this.#lowerBound = this.getMid();
+        } else {
+            this.#upperBound = this.getMid();
+        }
+    }
+
+    expand(up) {
+        const newLength = this.length() * 2.0;
+        if (up) {
+            this.#lowerBound = this.getMid();
+            this.#upperBound = this.#lowerBound + newLength;
+        } else {
+            this.#upperBound = this.getMid();
+            this.#lowerBound = this.#upperBound - newLength;
+        }
+    }
 }
 
 const doOnceMap = new Set();
