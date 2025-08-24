@@ -53,11 +53,11 @@ class CashHolding {
     }
 
     getHistoryTableView() {
-        const baseTable = getCashHistoryTableView(this.#history);
+        const baseHistory = getCashHistoryTableView(this.#history);
 
         return {
-            interestCash: this.#cashInterestSum.toString(),
-            history: baseTable.history
+            interestCash: this.#cashInterestSum.toNumber(),
+            history: baseHistory
         };
     }
 }

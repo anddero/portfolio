@@ -140,16 +140,16 @@ class BondHolding {
     }
 
     getHistoryTableView() {
-        const baseTable = getSimpleAssetHistoryTableView(this.#history);
+        const baseHistory = getSimpleAssetHistoryTableView(this.#history);
 
         return {
-            value: this.#latestTotalValue.toString(),
+            value: this.#latestTotalValue.toNumber(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
             xirr: this.#xirrStr,
-            totalCash: this.#totalCash.toString(),
-            buyCash: this.#buyCash.toString(),
-            interestCash: this.#interestCash.toString(),
-            history: baseTable.history
+            totalCash: this.#totalCash.toNumber(),
+            buyCash: this.#buyCash.toNumber(),
+            interestCash: this.#interestCash.toNumber(),
+            history: baseHistory
         };
     }
 

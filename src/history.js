@@ -152,20 +152,15 @@ function getCashHistoryTableView(history) {
         throw new Error('History cannot be empty.');
     }
     let currentValue = new Decimal(0);
-    const historyRecords = history.map((record, i) => {
+    return history.map((record) => {
         currentValue = currentValue.plus(record.valueChange);
         return {
-            index: i + 1,
             date: formatLocalDateForView(record.date),
-            change: record.valueChange.toString(),
-            balance: currentValue.toString(),
+            change: record.valueChange.toNumber(),
+            balance: currentValue.toNumber(),
             action: record.type
         };
-    }).toReversed();
-
-    return {
-        history: historyRecords
-    };
+    });
 }
 
 function getSimpleAssetHistoryTableView(history) {
@@ -177,21 +172,16 @@ function getSimpleAssetHistoryTableView(history) {
     }
     let currentCount = new Decimal(0);
     let currentCash = new Decimal(0);
-    const historyRecords = history.map((record, index) => {
+    return history.map((record) => {
         currentCount = currentCount.plus(record.valueChange);
         currentCash = currentCash.plus(record.cashChange);
         return {
-            index: index + 1,
             date: formatLocalDateForView(record.date),
-            change: record.valueChange.toString(),
-            count: currentCount.toString(),
-            cash: record.cashChange.toString(),
-            profit: currentCash.toString(),
+            change: record.valueChange.toNumber(),
+            count: currentCount.toNumber(),
+            cash: record.cashChange.toNumber(),
+            profit: currentCash.toNumber(),
             action: record.type
         };
-    }).toReversed();
-
-    return {
-        history: historyRecords
-    };
+    });
 }

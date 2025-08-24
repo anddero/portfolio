@@ -145,16 +145,16 @@ class IndexFundHolding {
     }
 
     getHistoryTableView() {
-        const baseTable = getSimpleAssetHistoryTableView(this.#history);
+        const baseHistory = getSimpleAssetHistoryTableView(this.#history);
 
         return {
-            value: this.#latestTotalValue.toString(),
+            value: this.#latestTotalValue.toNumber(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
             xirr: this.#xirrStr,
-            totalCash: this.#totalCash.toString(),
-            buyCash: this.#buyCash.toString(),
-            sellCash: this.#sellCash.toString(),
-            history: baseTable.history
+            totalCash: this.#totalCash.toNumber(),
+            buyCash: this.#buyCash.toNumber(),
+            sellCash: this.#sellCash.toNumber(),
+            history: baseHistory
         };
     }
 

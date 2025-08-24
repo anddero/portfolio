@@ -91,9 +91,9 @@ function buildStockHistoryTable(tableData) {
                 <td colspan="2">Income Cash</td>
                 <td colspan="5">${tableData.incomeCash}</td>
             </tr>
-            ${tableData.history.map(record => `
+            ${tableData.history.toReversed().map((record, index) => `
                 <tr>
-                    <td>${record.index}</td>
+                    <td>${index + 1}</td>
                     <td>${record.date}</td>
                     <td>${record.change}</td>
                     <td>${record.count}</td>
@@ -122,9 +122,9 @@ function buildCashHistoryTable(tableData) {
                 <td colspan="2">Interest Cash</td>
                 <td colspan="3">${tableData.interestCash}</td>
             </tr>
-            ${tableData.history.map(record => `
+            ${tableData.history.toReversed().map((record, index) => `
                 <tr>
-                    <td>${record.index}</td>
+                    <td>${index + 1}</td>
                     <td>${record.date}</td>
                     <td>${record.change}</td>
                     <td>${record.balance}</td>
@@ -170,9 +170,9 @@ function buildBondHistoryTable(tableData) {
                 <td colspan="2">Interest Cash</td>
                 <td colspan="5">${tableData.interestCash}</td>
             </tr>
-            ${tableData.history.map(record => `
+            ${tableData.history.toReversed().map((record, index) => `
                 <tr>
-                    <td>${record.index}</td>
+                    <td>${index + 1}</td>
                     <td>${record.date}</td>
                     <td>${record.change}</td>
                     <td>${record.count}</td>
@@ -220,9 +220,9 @@ function buildIndexHistoryTable(tableData) {
                 <td colspan="2">Sell Cash</td>
                 <td colspan="5">${tableData.sellCash}</td>
             </tr>
-            ${tableData.history.map(record => `
+            ${tableData.history.toReversed().map((record, index) => `
                 <tr>
-                    <td>${record.index}</td>
+                    <td>${index + 1}</td>
                     <td>${record.date}</td>
                     <td>${record.change}</td>
                     <td>${record.count}</td>
