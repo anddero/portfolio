@@ -53,9 +53,16 @@ class CashHolding {
     }
 
     getHistoryTableView() {
-        const table = getCashHistoryTableView(this.#history);
-        const singleValueSpans = [1, table.getTableSpan() - 1];
-        table.insertRow(0, ['Interest Cash', this.#cashInterestSum.toString()], singleValueSpans);
-        return table;
+        const baseTable = getCashHistoryTableView(this.#history);
+        // Create summary row to be added at the top
+        const summaryRows = [
+            ['Interest Cash', this.#cashInterestSum.toString(), '', '', '']
+        ];
+
+        return {
+            header: baseTable.header,
+            body: [...summaryRows, ...baseTable.body],
+            type: 'cash-history'
+        };
     }
 }

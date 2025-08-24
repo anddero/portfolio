@@ -141,9 +141,9 @@ class Portfolio {
 
     getSummaryTableView() {
         const summary = this.getSummary();
-        return new TableView(
-            ['Index', 'Platform', 'Type', 'Name', 'Count', 'Value', 'As Of Date', 'Buy', 'Sell', 'Income', 'Profit', "XIRR", 'Currency', 'Code'],
-            summary.map((record, index) => [
+        return {
+            header: ['Index', 'Platform', 'Type', 'Name', 'Count', 'Value', 'As Of Date', 'Buy', 'Sell', 'Income', 'Profit', "XIRR", 'Currency', 'Code'],
+            body: summary.map((record, index) => [
                 (index + 1).toString(),
                 record.platformName,
                 record.assetType,
@@ -159,7 +159,7 @@ class Portfolio {
                 record.currency,
                 record.assetCode
             ])
-        );
+        };
     }
 
     getAssetHistoryTablesView() {
@@ -169,6 +169,6 @@ class Portfolio {
             id: `${platform.getName()}-${holding.getCode()}`,
             table: holding.getHistoryTableView()
         })));
-        return new TablesView(tablesList);
+        return { tables: tablesList };
     }
 }

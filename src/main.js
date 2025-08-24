@@ -1,4 +1,3 @@
-
 // CONSTANTS
 
 const ALL_POSSIBLE_JSON_FIELDS = [
@@ -127,12 +126,14 @@ async function onImportLogInputChange(event) {
 
 // Reload the summary table view, based on global portfolio object
 function reloadSummaryTable(id) {
-    gPortfolioState.getSummaryTableView().updateDom(id);
+    const tableData = gPortfolioState.getSummaryTableView();
+    buildSummaryTable(tableData, id);
 }
 
 // Reload the asset history tables view, based on global portfolio object
 function reloadAssetHistoryTables(id) {
-    gPortfolioState.getAssetHistoryTablesView().updateDom(id);
+    const tablesData = gPortfolioState.getAssetHistoryTablesView();
+    buildAssetHistoryTables(tablesData, id);
 }
 
 function reloadErrorTable(id, msg) {

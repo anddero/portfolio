@@ -182,15 +182,22 @@ class StockHolding {
     }
 
     getHistoryTableView() {
-        const table = getSimpleAssetHistoryTableView(this.#history);
-        const singleValueSpans = [1, table.getTableSpan() - 1];
-        table.insertRow(0, ['Value', this.#latestTotalValue.toString(), formatLocalDateForView(this.#latestUnitValueAndDate.date)], [1, 1, table.getTableSpan() -2]);
-        table.insertRow(1, ['XIRR', this.#xirrStr], singleValueSpans);
-        table.insertRow(2, ['Total Cash', this.#totalCash.toString()], singleValueSpans);
-        table.insertRow(3, ['Buy Cash', this.#buyCash.toString()], singleValueSpans);
-        table.insertRow(4, ['Sell Cash', this.#sellCash.toString()], singleValueSpans);
-        table.insertRow(5, ['Income Cash', this.#incomeCash.toString()], singleValueSpans);
-        return table;
+        const baseTable = getSimpleAssetHistoryTableView(this.#history);
+        // Create summary rows to be added at the top
+        const summaryRows = [
+            ['Value', this.#latestTotalValue.toString(), formatLocalDateForView(this.#latestUnitValueAndDate.date), '', '', '', ''],
+            ['XIRR', this.#xirrStr, '', '', '', '', ''],
+            ['Total Cash', this.#totalCash.toString(), '', '', '', '', ''],
+            ['Buy Cash', this.#buyCash.toString(), '', '', '', '', ''],
+            ['Sell Cash', this.#sellCash.toString(), '', '', '', '', ''],
+            ['Income Cash', this.#incomeCash.toString(), '', '', '', '', '']
+        ];
+
+        return {
+            header: baseTable.header,
+            body: [...summaryRows, ...baseTable.body],
+            type: 'stock-history'
+        };
     }
 
     /**
