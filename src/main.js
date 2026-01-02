@@ -86,7 +86,8 @@ async function onImportLogInputChange(event) {
         gPortfolioState = portfolioObj;
         setImportLogInputMsg(msg.text, msg.isError);
         tryReloadTable("logTable", reloadLogTable);
-        tryReloadTable("summaryTable", reloadSummaryTable);
+        tryReloadTable("portfolioSummaryContainer", reloadPortfolioSummaryTables);
+        tryReloadTable("assetsOverviewTable", reloadAssetsOverviewTable);
         tryReloadTable("assetSummaryContainer", reloadAssetHistoryTables);
     };
 
@@ -124,10 +125,16 @@ async function onImportLogInputChange(event) {
     return updateDom();
 }
 
-// Reload the summary table view, based on global portfolio object
-function reloadSummaryTable(id) {
-    const tableData = gPortfolioState.getSummaryTableView();
-    buildSummaryTable(tableData, id);
+// Reload the portfolio summary table view, based on global portfolio object
+function reloadPortfolioSummaryTables(id) {
+    const tableData = gPortfolioState.getPortfolioSummaryTablesView();
+    buildPortfolioSummaryTables(tableData, id);
+}
+
+// Reload the assets overview table view, based on global portfolio object
+function reloadAssetsOverviewTable(id) {
+    const tableData = gPortfolioState.getAssetsOverviewTableView();
+    buildAssetsOverviewTable(tableData, id);
 }
 
 // Reload the asset history tables view, based on global portfolio object

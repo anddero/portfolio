@@ -65,7 +65,7 @@ class Portfolio {
         await Promise.all(Array.from(this.#platforms.values()).map(platform => platform.validateAndFinalize()));
     }
 
-    getSummary() {
+    getAssetsOverview() {
         const summary = []; // Array of SummaryRecord objects
         for (const platform of this.#platforms.values()) {
             for (const cashHolding of platform.getCashHoldings()) {
@@ -143,14 +143,14 @@ class Portfolio {
         return summary;
     }
 
-    getSummaryTableView() {
-        const summary = this.getSummary();
+    getAssetsOverviewTableView() {
+        const overview = this.getAssetsOverview();
 
         // Check if asset value is old (at least 5 days behind)
         const isOld = (date) => date.getTime() < Date.now() - 5 * 24 * 60 * 60 * 1000;
 
         return {
-            assets: summary.map((record, index) => ({
+            assets: overview.map((record, index) => ({
                 index: index + 1,
                 platformName: record.platformName,
                 assetType: record.assetType,
@@ -207,6 +207,23 @@ class Portfolio {
             stockList,
             indexFundList,
             bondList
+        };
+    }
+
+    getPortfolioSummaryTablesView() {
+        // Total value of all assets, grouped by currency.
+        const totalValueByCurrency = new Map();
+        this.#platforms.values().forEach(platform => {
+            platform.getAllHoldings().forEach(holding => {
+                if (totalValueByCurrency.has(holding.getCurrency())) {
+                    totalValueByCurrency.set(holding.getCurrency(), totalValueByCurrency.get(holding.getCurrency()).plus(holding.getTotalCurrentValue()));
+                } else {
+                    totalValueByCurrency.set(holding.getCurrency(), holding.getTotalCurrentValue());
+                }
+            });
+        });
+        return {
+            totalValueByCurrency
         };
     }
 }

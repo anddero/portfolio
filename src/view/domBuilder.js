@@ -1,6 +1,6 @@
 // DOM building functions for different table types
 
-function buildSummaryTable(tableData, tableElementId) {
+function buildAssetsOverviewTable(tableData, tableElementId) {
     if (!tableElementId || typeof tableElementId !== 'string') {
         throw new Error('tableElementId must be a non-empty string');
     }
@@ -315,6 +315,43 @@ function buildAssetHistoryTables(tablesData, divElementId) {
             `;
         });
     }
+
+    divElement.innerHTML = htmlContent;
+}
+
+function buildPortfolioSummaryTables(summaryData, divElementId) {
+    if (!divElementId || typeof divElementId !== 'string') {
+        throw new Error('divElementId must be a non-empty string');
+    }
+
+    const divElement = document.getElementById(divElementId);
+    if (!(divElement instanceof HTMLDivElement)) {
+        throw new Error('Not a HTMLDivElement');
+    }
+
+    let htmlContent = '';
+
+    htmlContent += `
+        <div class="table-container">
+            <h2>Total Value by Currency</h2>
+            <table id="total-value-by-currency">
+                <thead>
+                    <tr>
+                        <th>Currency</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        ${Array.from(summaryData.totalValueByCurrency.entries()).map(([currency, value]) => `
+                            <tr class="summary-row">
+                                <td>${currency}</td>
+                                <td>${value}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+            </table>
+        </div>
+    `;
 
     divElement.innerHTML = htmlContent;
 }

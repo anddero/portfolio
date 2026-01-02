@@ -20,6 +20,10 @@ class CashHolding {
         return this.#value;
     }
 
+    getTotalCurrentValue() { // kind-of like an interface method, so that all assets would have it
+        return this.getCurrentValue();
+    }
+
     getCode() {
         return this.getCurrency();
     }
