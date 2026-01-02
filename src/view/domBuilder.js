@@ -69,7 +69,10 @@ function buildStockHistoryTable(tableData) {
             <tr class="summary-row">
                 <td colspan="2">Value</td>
                 <td>${tableData.value}</td>
-                <td colspan="4">${tableData.valueDate}</td>
+                <td colspan="4">
+                    ${tableData.valueDate}
+                    ${tableData.valueDateWarn ? "⚠️" : ""}
+                </td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
@@ -152,7 +155,10 @@ function buildBondHistoryTable(tableData) {
             <tr class="summary-row">
                 <td colspan="2">Value</td>
                 <td>${tableData.value}</td>
-                <td colspan="4">${tableData.valueDate}</td>
+                <td colspan="4">
+                    ${tableData.valueDate}
+                    ${tableData.valueDateWarn ? "⚠️" : ""}
+                </td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
@@ -202,7 +208,10 @@ function buildIndexHistoryTable(tableData) {
             <tr class="summary-row">
                 <td colspan="2">Value</td>
                 <td>${tableData.value}</td>
-                <td colspan="4">${tableData.valueDate}</td>
+                <td colspan="4">
+                    ${tableData.valueDate}
+                    ${tableData.valueDateWarn ? "⚠️" : ""}
+                </td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>

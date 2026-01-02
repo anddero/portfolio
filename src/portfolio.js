@@ -145,6 +145,10 @@ class Portfolio {
 
     getSummaryTableView() {
         const summary = this.getSummary();
+
+        // Check if asset value is old (at least 5 days behind)
+        const isOld = (date) => date.getTime() < Date.now() - 5 * 24 * 60 * 60 * 1000;
+
         return {
             assets: summary.map((record, index) => ({
                 index: index + 1,
@@ -153,7 +157,7 @@ class Portfolio {
                 assetFriendlyName: record.assetFriendlyName,
                 count: record.count,
                 totalCurrentValue: record.totalCurrentValue,
-                currentValueDate: formatLocalDateForView(record.currentValueDate),
+                currentValueDate: formatLocalDateForView(record.currentValueDate) + (isOld(record.currentValueDate) ? '⚠️' : ''),
                 totalBuy: record.totalBuy,
                 totalSell: record.totalSell,
                 totalIncome: record.totalIncome,

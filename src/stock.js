@@ -191,9 +191,13 @@ class StockHolding {
     getHistoryTableView() {
         const baseHistory = getSimpleAssetHistoryTableView(this.#history);
 
+        // Check if asset is old (at least 5 days behind)
+        const isOld = this.#latestUnitValueAndDate.date.getTime() < Date.now() - 5 * 24 * 60 * 60 * 1000;
+
         return {
             value: this.#latestTotalValue.toNumber(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
+            valueDateWarn: isOld,
             xirrCustom: this.#xirrCustom.toNumber(),
             xirrLib: this.#xirrLib.toNumber(),
             totalCash: this.#totalCash.toNumber(),
