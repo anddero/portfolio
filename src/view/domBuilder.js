@@ -43,7 +43,7 @@ function buildSummaryTable(tableData, tableElementId) {
                     <td>${asset.totalSell}</td>
                     <td>${asset.totalIncome}</td>
                     <td>${asset.totalProfit}</td>
-                    <td>${asset.xirr}</td>
+                    <td>${asset.xirrCustom}/${asset.xirrLib}</td>
                     <td>${asset.currency}</td>
                     <td>${asset.assetCode}</td>
                 </tr>
@@ -73,7 +73,7 @@ function buildStockHistoryTable(tableData) {
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
-                <td colspan="5">${tableData.xirr}</td>
+                <td colspan="5">${tableData.xirrCustom}/${tableData.xirrLib}</td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">Total Cash</td>
@@ -156,7 +156,7 @@ function buildBondHistoryTable(tableData) {
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
-                <td colspan="5">${tableData.xirr}</td>
+                <td colspan="5">${tableData.xirrCustom}/${tableData.xirrLib}</td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">Total Cash</td>
@@ -206,7 +206,7 @@ function buildIndexHistoryTable(tableData) {
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
-                <td colspan="5">${tableData.xirr}</td>
+                <td colspan="5">${tableData.xirrCustom}/${tableData.xirrLib}</td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">Total Cash</td>

@@ -59,6 +59,27 @@ class VRes {
     }
 
     /**
+     * Log with an optional message prefix if the VRes is a failure, and return the given value instead.
+     * Otherwise, return the underlying success value.
+     */
+    getOrLog(valueOnFailure, prefix = undefined) {
+        if (this.isFailure) {
+            if (prefix) {
+                if (typeof prefix !== 'string') {
+                    throw new Error('Prefix must be a string');
+                }
+                console.error(`${prefix}: ${this.message}`);
+            }
+            console.error(this.message);
+            return valueOnFailure;
+        }
+        if (this.warnings.length > 0) {
+            throw new Error("VRes has unhandled warnings.");
+        }
+        return this.value;
+    }
+
+    /**
      * Run another validation if the current VRes is a success.
      * @param callback {() => VRes} A validation function that returns a VRes.
      * @returns {VRes} Either current instance or a new instance from the callback.
@@ -450,47 +471,48 @@ function countDays(a, b) {
 
 /**
  * Calculates the XIRR (Extended Internal Rate of Return) based on the given cash flow.
- * @param {Array} dateAndCashFlowPairs An array of arrays, where each inner array contains two elements:
- *                                     the date (as a Date object) and the cash flow amount (as a Decimal).
- *                                     The ordering of the pairs is irrelevant.
- *                                     The cash flow amount should be negative for cash outflows (investments)
- *                                     and positive for cash inflows (returns).
+ * @param transactions { [ {cashFlow: number, time: Date} ]} - A list of transactions where each transaction represents
+ *     a cash inflow or outflow of an asset and the time when it was made. The given time is first converted to a
+ *     local time, and then only the date part is kept (exact time ignored).
+ *     Must contain at least one positive and one negative cash flow.
  * @throws {Error} On input type errors.
  * @returns {VRes} The VRes holding a XIRR as a Decimal (e.g., 0.1 for 10%), or an error if XIRR could not be calculated.
  */
-function calculateXirr(dateAndCashFlowPairs) {
-    // Internal API usage validation
-    if (!Array.isArray(dateAndCashFlowPairs)) {
-        throw new Error('dateAndCashFlowPairs must be an array');
+function calculateXirrLib(transactions) { // TODO Currently broken, probably using it wrong?
+    if (!Array.isArray(transactions)) {
+        throw new Error(`Invalid transactions: ${transactions}`);
     }
-    dateAndCashFlowPairs.forEach(pair => {
-        if (!Array.isArray(pair) || pair.length !== 2) {
-            throw new Error('Each pair must be an array with exactly two elements');
+    let hasPositiveCashFlow = false;
+    let hasNegativeCashFlow = false;
+    transactions.forEach(transaction => {
+        if (typeof transaction.cashFlow !== 'number' || isNaN(transaction.cashFlow) || !isFinite(transaction.cashFlow)) {
+            throw new Error(`Invalid transaction.cashFlow: ${transaction.cashFlow}`);
         }
-        if (!(pair[0] instanceof Date)) {
-            throw new Error('First element of each pair must be a Date object');
+        if (!(transaction.time instanceof Date)) {
+            throw new Error(`Invalid transaction.time: ${transaction.time}`);
         }
-        if (!(pair[1] instanceof Decimal)) {
-            throw new Error('Second element of each pair must be a Decimal object');
+        if (transaction.cashFlow < 0) {
+            hasNegativeCashFlow = true;
+        }
+        if (transaction.cashFlow > 0) {
+            hasPositiveCashFlow = true;
         }
     });
-
-    // Sort pairs by date
-    dateAndCashFlowPairs = dateAndCashFlowPairs.toSorted((pair1, pair2) => pair1[0] - pair2[0]);
-
-    // Data validation (expected failures)
-    if (dateAndCashFlowPairs.length < 2) {
-        return new VRes('At least two values are required for XIRR calculation');
+    if (!hasPositiveCashFlow || !hasNegativeCashFlow) {
+        throw new Error(`Invalid transactions: must contain at least one positive and one negative cash flow`);
     }
 
+    // Sort pairs by date
+    transactions = transactions.toSorted((transaction1, transaction2) => transaction1.time - transaction2.time);
+
     // Workaround for a bug where XIRR breaks if the last value is 0 (which shouldn't affect the actual outcome)
-    if (dateAndCashFlowPairs[dateAndCashFlowPairs.length - 1][1].isZero()) {
-        dateAndCashFlowPairs.pop();
+    if (transactions[transactions.length - 1].cashFlow === 0) {
+        transactions.pop();
     }
 
     // Prepare cash flows for XIRR calculation as array
-    const cashFlows = dateAndCashFlowPairs.map(pair => pair[1].toNumber());
-    const dates = dateAndCashFlowPairs.map(pair => pair[0]);
+    const cashFlows = transactions.map(transaction => transaction.cashFlow);
+    const dates = transactions.map(transaction => transaction.time);
 
     let result = null;
     try {

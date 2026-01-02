@@ -10,7 +10,8 @@ class StockHolding {
     #totalCash;
     #latestUnitValueAndDate; // {value: Decimal, date: Date}
     #latestTotalValue;
-    #xirr;
+    #xirrCustom;
+    #xirrLib;
     #history; // Array of StockChangeRecord objects
 
     constructor(code, friendlyName, currency) {
@@ -28,7 +29,8 @@ class StockHolding {
         this.#totalCash = new Decimal(0);
         this.#latestUnitValueAndDate = null;
         this.#latestTotalValue = null;
-        this.#xirr = null;
+        this.#xirrCustom = null;
+        this.#xirrLib = null;
         this.#history = [];
     }
 
@@ -68,8 +70,12 @@ class StockHolding {
         return this.#totalCash;
     }
 
-    getXirr() {
-        return this.#xirr;
+    getXirrCustom() {
+        return this.#xirrCustom;
+    }
+
+    getXirrLib() {
+        return this.#xirrLib;
     }
 
     getTotalCurrentValue() {
@@ -176,7 +182,9 @@ class StockHolding {
             // Calculate the total value of all shares.
             this.#latestTotalValue = this.#shares.times(this.#latestUnitValueAndDate.value);
             // Calculate XIRR.
-            this.#xirr = new Decimal(this.calculateXirr());
+            const xirrs = this.calculateXirrs();
+            this.#xirrCustom = new Decimal(xirrs[0]);
+            this.#xirrLib = new Decimal(xirrs[1]);
         }
     }
 
@@ -186,7 +194,8 @@ class StockHolding {
         return {
             value: this.#latestTotalValue.toNumber(),
             valueDate: formatLocalDateForView(this.#latestUnitValueAndDate.date),
-            xirr: this.#xirr.toNumber(),
+            xirrCustom: this.#xirrCustom.toNumber(),
+            xirrLib: this.#xirrLib.toNumber(),
             totalCash: this.#totalCash.toNumber(),
             buyCash: this.#buyCash.toNumber(),
             sellCash: this.#sellCash.toNumber(),
@@ -196,17 +205,16 @@ class StockHolding {
     }
 
     /**
-     * Calculates the XIRR (Extended Internal Rate of Return) for this bond holding
+     * Calculates the XIRR (Extended Internal Rate of Return) for this stock holding
      * based on its transaction history.
      */
-    calculateXirr() {
+    calculateXirrs() {
         validateConcreteDecimal(this.#latestTotalValue).getOrThrow('latestTotalValue');
         const finalPotentialInflow = this.#latestTotalValue;
-        return xirr(
-            this.#history.map(record => ({
-                time: record.date,
-                cashFlow: record.cashChange.toNumber(),
-            })).concat([{time: this.#latestUnitValueAndDate.date, cashFlow: finalPotentialInflow.toNumber()}])
-        );
+        const flows = this.#history.map(record => ({
+            time: record.date,
+            cashFlow: record.cashChange.toNumber(),
+        })).concat([{time: this.#latestUnitValueAndDate.date, cashFlow: finalPotentialInflow.toNumber()}]);
+        return [calculateXirrCustom(flows), calculateXirrLib(flows).getOrLog(NaN, 'StockHolding::calculateXirrs()')];
     }
 }

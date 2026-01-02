@@ -1,7 +1,7 @@
 class SummaryRecord {
     constructor(platformName, assetType, assetFriendlyName, currency,
-                count, totalCurrentValue, currentValueDate, totalBuy, totalSell, totalIncome, totalProfit, xirr,
-                assetCode) {
+                count, totalCurrentValue, currentValueDate, totalBuy, totalSell, totalIncome, totalProfit, xirrCustom,
+                xirrLib, assetCode) {
         this.platformName = platformName;
         this.assetType = assetType;
         this.assetFriendlyName = assetFriendlyName;
@@ -13,7 +13,8 @@ class SummaryRecord {
         this.totalSell = totalSell;
         this.totalIncome = totalIncome;
         this.totalProfit = totalProfit;
-        this.xirr = xirr;
+        this.xirrCustom = xirrCustom;
+        this.xirrLib = xirrLib;
         this.assetCode = assetCode;
     }
 }
@@ -97,7 +98,8 @@ class Portfolio {
                     stockHolding.getSellCash().toString(),
                     stockHolding.getIncomeCash().toString(),
                     stockHolding.getTotalCash().toString(),
-                    stockHolding.getXirr().toString(),
+                    stockHolding.getXirrCustom().toString(),
+                    stockHolding.getXirrLib().toString(),
                     stockHolding.getCode()
                 ));
             }
@@ -114,7 +116,8 @@ class Portfolio {
                     indexFundHolding.getSellCash().toString(),
                     "",
                     indexFundHolding.getTotalCash().toString(),
-                    indexFundHolding.getXirr().toString(),
+                    indexFundHolding.getXirrCustom().toString(),
+                    indexFundHolding.getXirrLib().toString(),
                     indexFundHolding.getCode()
                 ));
             }
@@ -131,7 +134,8 @@ class Portfolio {
                     "",
                     bondHolding.getInterestCash().toString(),
                     bondHolding.getTotalCash().toString(),
-                    bondHolding.getXirr().toString(),
+                    bondHolding.getXirrCustom().toString(),
+                    bondHolding.getXirrLib().toString(),
                     bondHolding.getCode()
                 ));
             }
@@ -154,7 +158,8 @@ class Portfolio {
                 totalSell: record.totalSell,
                 totalIncome: record.totalIncome,
                 totalProfit: record.totalProfit,
-                xirr: record.xirr,
+                xirrCustom: record.xirrCustom,
+                xirrLib: record.xirrLib,
                 currency: record.currency,
                 assetCode: record.assetCode
             }))

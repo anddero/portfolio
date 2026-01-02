@@ -80,7 +80,7 @@
  *     Must contain at least one positive and one negative cash flow.
  * @returns {number} - The XIRR of the asset or NaN if the calculation ran out of budget.
  */
-function xirr(transactions) {
+function calculateXirrCustom(transactions) {
     if (!Array.isArray(transactions)) {
         throw new Error(`Invalid transactions: ${transactions}`);
     }
