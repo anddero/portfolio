@@ -162,6 +162,87 @@ class Platform {
             .concat(this.getBondHoldings());
     }
 
+    getAllSimpleAssetHoldings() {
+        return this.getStockHoldings()
+            .concat(this.getIndexFundHoldings())
+            .concat(this.getBondHoldings());
+    }
+
+    // "Tulumaksuvaba jääk" - It's an Estonian thing and only applies to accounts that are officially declared tax-exempt
+    // Return the tax free remainder at the end of the given year. This should match what is calculated on the
+    // income tax declaration in spring of the following year.
+    // Return a map of currency code to Decimal, e.g. "USD":Decimal(5).
+    getTaxFreeRemainderEstonia(year) {
+        let sumByCurrency = new Map();
+        this.getCashHoldings().forEach(holding => {
+            if (!sumByCurrency.has(holding.getCurrency())) {
+                sumByCurrency.set(holding.getCurrency(), new Decimal(0));
+            }
+            const history = holding.getHistory()
+                .filter(record => record.date.getFullYear() <= year);
+            // Sum all cash deposits
+            history
+                .filter(record => record.type === "deposit")
+                .forEach(record =>
+                    sumByCurrency.set(holding.getCurrency(), sumByCurrency.get(holding.getCurrency()).plus(record.valueChange))
+                );
+            // Subtract all cash withdrawals
+            history
+                .filter(record => record.type === "withdraw")
+                .forEach(record =>
+                    sumByCurrency.set(holding.getCurrency(), sumByCurrency.get(holding.getCurrency()).minus(record.valueChange))
+                );
+        });
+        // Add all incomes where income tax has already been deducted
+        const simpleAssets = this.getAllSimpleAssetHoldings();
+        simpleAssets.forEach(holding => {
+            if (!sumByCurrency.has(holding.getCurrency())) {
+                sumByCurrency.set(holding.getCurrency(), new Decimal(0));
+            }
+            holding.getHistory()
+                .filter(record => record.date.getFullYear() <= year)
+                .filter(record => record.wasIncomeTaxPaidEstonia)
+                .forEach(record =>
+                    sumByCurrency.set(holding.getCurrency(), sumByCurrency.get(holding.getCurrency()).plus(record.valueChange))
+                );
+        });
+        return sumByCurrency;
+    }
+
+    getEstonianTaxFreeRemainderTableView() {
+        const firstYear = this.getAllHoldings().reduce((minDate, holding) => {
+            const y = holding.getHistory()[0].date.getFullYear();
+            return minDate === null ? y : Math.min(minDate, y);
+        }, null);
+        const lastYear = (new Date()).getFullYear();
+        const years = [];
+        for (let y = firstYear; y <= lastYear; y++) {
+            years.push(y);
+        }
+        const taxFreeRemainderByYear = new Map();
+        years.forEach(year => taxFreeRemainderByYear.set(year, this.getTaxFreeRemainderEstonia(year)));
+        let currencies = new Set();
+        taxFreeRemainderByYear.forEach((remainderByCurrency, _) => remainderByCurrency.forEach((_, currency) => currencies.add(currency)));
+        currencies = Array.from(currencies);
+        const tableByYearAndCurrency = []; // 2D array
+        years.forEach(year => {
+            const row = [];
+            currencies.forEach(currency => {
+                let value = taxFreeRemainderByYear.get(year).get(currency);
+                if (value === undefined) {
+                    value = new Decimal(0);
+                }
+                row.push(value.toNumber())
+            });
+            tableByYearAndCurrency.push(row);
+        });
+        return {
+            yearsRow: years,
+            currenciesCol: currencies,
+            table: tableByYearAndCurrency
+        };
+    }
+
     async validateAndFinalize() {
         await Promise.all(this.getAllHoldings().map(holding => holding.validateAndFinalize()));
     }

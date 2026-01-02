@@ -355,3 +355,41 @@ function buildPortfolioSummaryTables(summaryData, divElementId) {
 
     divElement.innerHTML = htmlContent;
 }
+
+function buildEstonianTaxFreeRemainderTable(tableData, divElementId) {
+    if (!divElementId || typeof divElementId !== 'string') {
+        throw new Error('divElementId must be a non-empty string');
+    }
+
+    const divElement = document.getElementById(divElementId);
+    if (!(divElement instanceof HTMLDivElement)) {
+        throw new Error('Not a HTMLDivElement');
+    }
+
+    let htmlContent = '';
+
+    tableData.forEach(platform => {
+        htmlContent += `
+            <div class="table-container">
+                <h2>${platform.platformName}</h2>
+                <table id="estonian-tax-free-remainder-${platform.platformName}">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            ${platform.sumTable.currenciesCol.map(currency => `<th>${currency}</th>`).join('')}
+                        </tr>
+                        </thead>
+                        <tbody>
+                            ${platform.sumTable.yearsRow.map((year, row) => `
+                                <tr class="summary-row">
+                                    <td>${year}</td>
+                                    ${platform.sumTable.table[row].map(value => `<td>${value}</td>`).join('')}
+                            `).join('')}
+                        </tbody>
+                </table>
+            </div>
+        `;
+    });
+
+    divElement.innerHTML = htmlContent;
+}

@@ -17,6 +17,7 @@
     <div class="tab-nav">
         <button class="tab-button active" onclick="openTab(event, 'data-management')">Data Management</button>
         <button class="tab-button" onclick="openTab(event, 'portfolio-view')">Portfolio View</button>
+        <button class="tab-button" onclick="openTab(event, 'estonian-tax-free-remainder-view')">Estonian Tax Free Remainder</button>
     </div>
 </header>
 
@@ -43,6 +44,11 @@
         </table>
         <div id="assetSummaryContainer">
         </div>
+    </div>
+
+    <!-- Estonian Tax Free Remainder View Tab -->
+    <div id="estonian-tax-free-remainder-view" class="tab-content">
+        <div id="estonianTaxFreeRemainderContainer"></div>
     </div>
 </main>
 

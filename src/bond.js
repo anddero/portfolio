@@ -74,7 +74,7 @@ class BondHolding {
         return this.#latestUnitValueAndDate.date;
     }
 
-    updateShares(diff, acquiredCash, date, zeroDiff, type, unitValue) {
+    updateShares(diff, acquiredCash, date, zeroDiff, type, unitValue, wasIncomeTaxPaidEstonia) {
         let warnings = [];
         if (typeof zeroDiff != 'boolean') {
             throw new Error('Not a Boolean');
@@ -104,7 +104,7 @@ class BondHolding {
             }
         }
         this.#totalCash = this.#totalCash.plus(acquiredCash);
-        this.#history.push(new BondChangeRecord(date, diff, acquiredCash, type));
+        this.#history.push(new BondChangeRecord(date, diff, acquiredCash, type, wasIncomeTaxPaidEstonia));
         if (this.#shares.lessThan(0)) {
             warnings.push(`Asset "${this.#friendlyName}" count ${this.#shares} has become negative.`);
         }
@@ -146,11 +146,15 @@ class BondHolding {
         }
     }
 
+    getHistory() {
+        return this.#history;
+    }
+
     getHistoryTableView() {
         const baseHistory = getSimpleAssetHistoryTableView(this.#history);
 
         // Check if asset is old (at least 5 days behind)
-        const isOld = this.#latestUnitValueAndDate.date.getTime() < Date.now() - 5 * 24 * 60 * 60 * 1000;
+        const isOld = this.#latestUnitValueAndDate.date.getTime() < Date.now() - window.APP_CONFIG.assetValueShelfLifeHours * 60 * 60 * 1000;
 
         return {
             value: this.#latestTotalValue.toNumber(),

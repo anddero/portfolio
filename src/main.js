@@ -89,6 +89,7 @@ async function onImportLogInputChange(event) {
         tryReloadTable("portfolioSummaryContainer", reloadPortfolioSummaryTables);
         tryReloadTable("assetsOverviewTable", reloadAssetsOverviewTable);
         tryReloadTable("assetSummaryContainer", reloadAssetHistoryTables);
+        tryReloadTable("estonianTaxFreeRemainderContainer", reloadEstonianTaxFreeRemainderTable);
     };
 
     const file = event.target.files[0];
@@ -141,6 +142,11 @@ function reloadAssetsOverviewTable(id) {
 function reloadAssetHistoryTables(id) {
     const tablesData = gPortfolioState.getAssetHistoryTablesView();
     buildAssetHistoryTables(tablesData, id);
+}
+
+function reloadEstonianTaxFreeRemainderTable(id) {
+    const tableData = gPortfolioState.getEstonianTaxFreeRemainderTableView();
+    buildEstonianTaxFreeRemainderTable(tableData, id);
 }
 
 function reloadErrorTable(id, msg) {
@@ -364,7 +370,7 @@ function processActionPublicToPrivateShareConversion(item, portfolioObj) {
     // Subtract the fee value from the platform
     const cashChange = item.feeValue.negated();
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(cashChange, item.date, "STOCK_PUBLIC_TO_PRIVATE_SHARE_CONVERSION"));
-    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), cashChange, item.date, true, "PUBLIC_TO_PRIVATE_SHARE_CONVERSION", false, null));
+    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), cashChange, item.date, true, "PUBLIC_TO_PRIVATE_SHARE_CONVERSION", false, null, item.feeValue.greaterThan(0)));
 
     return warnings;
 }
@@ -392,7 +398,7 @@ function processActionUnspecificAccountingIncomeAction(item, portfolioObj) {
     }
     // Add the received cash to the platform
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(item.totalValue, item.date, "STOCK_UNSPECIFIC_ACCOUNTING_INCOME"));
-    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.totalValue, item.date, true, "UNSPECIFIC_ACCOUNTING_INCOME", false, null));
+    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.totalValue, item.date, true, "UNSPECIFIC_ACCOUNTING_INCOME", false, null, false));
 
     return warnings;
 }
@@ -497,7 +503,7 @@ function processActionDividend(item, portfolioObj) {
 
     // Update the cash amount on the platform
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(item.netValue, item.date, "STOCK_DIVIDEND"));
-    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "DIVIDEND", false, null));
+    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "DIVIDEND", false, null, item.taxValue.greaterThan(0)));
     return warnings;
 }
 
@@ -535,7 +541,7 @@ function processActionStockSplit(item, portfolioObj) {
 
     // Update
     const updateDiff = item.toTotalShares.minus(item.fromTotalShares);
-    warnings = warnings.concat(stockHolding.updateShares(updateDiff, new Decimal(0), item.date, false, "STOCK_SPLIT", true, null));
+    warnings = warnings.concat(stockHolding.updateShares(updateDiff, new Decimal(0), item.date, false, "STOCK_SPLIT", true, null, false));
     return warnings;
 }
 
@@ -591,7 +597,7 @@ function processActionInterestBond(item, portfolioObj) {//
 
     // Update the cash amount on the platform
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(item.netValue, item.date, "BOND_INTEREST"));
-    warnings = warnings.concat(bondHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "INTEREST", null));
+    warnings = warnings.concat(bondHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "INTEREST", null, item.taxValue.greaterThan(0)));
     return warnings;
 }
 
@@ -701,7 +707,7 @@ function processActionBuyStock(item, portfolioObj) {
     const spentCash = item.totalValue.plus(item.feeValue).negated();
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(spentCash, item.date, "STOCK_BUY"));
     // Add the shares to the platform
-    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY", false, item.unitValue));
+    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY", false, item.unitValue, false));
 
     return warnings;
 }
@@ -778,7 +784,7 @@ function processActionBuyBond(item, portfolioObj) {
     const spentCash = item.totalValue.plus(item.feeValue).negated();
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(spentCash, item.date, "BOND_BUY"));
     // Add the shares to the platform
-    warnings = warnings.concat(platform.getBondHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY", item.unitValue));
+    warnings = warnings.concat(platform.getBondHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY", item.unitValue, false));
 
     return warnings;
 }
@@ -814,7 +820,7 @@ function processActionBuyIndexFund(item, portfolioObj) {
     const spentCash = item.totalValue.negated();
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(spentCash, item.date, "INDEX_FUND_BUY"));
     // Add the index fund cash to the platform
-    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY", item.unitValue));
+    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalShares, spentCash, item.date, false, "BUY", item.unitValue, false));
     return warnings;
 }
 
@@ -856,7 +862,7 @@ function processActionSellStock(item, portfolioObj) {
     const acquiredCash = item.totalValue.minus(item.feeValue);
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(acquiredCash, item.date, "STOCK_SELL"));
     // Subtract the sold shares from the platform
-    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL", false, item.unitValue));
+    warnings = warnings.concat(platform.getStockHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL", false, item.unitValue, false));
 
     return warnings;
 }
@@ -891,7 +897,7 @@ function processActionSellIndexFund(item, portfolioObj) {
     const acquiredCash = item.totalValue;
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(acquiredCash, item.date, "INDEX_FUND_SELL"));
     // Subtract the index fund cash from the platform
-    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL", item.unitValue));
+    warnings = warnings.concat(platform.getIndexFundHolding(item.assetCode).updateShares(item.totalShares.negated(), acquiredCash, item.date, false, "SELL", item.unitValue, false));
     return warnings;
 }
 

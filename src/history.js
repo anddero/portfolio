@@ -51,7 +51,7 @@ const BondChangeType = Object.freeze({
 });
 
 class StockChangeRecord {
-    constructor(date, valueChange, cashChange, type) {
+    constructor(date, valueChange, cashChange, type, wasIncomeTaxPaidEstonia) {
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
         }
@@ -68,11 +68,12 @@ class StockChangeRecord {
         this.valueChange = valueChange; // Decimal object, amount the asset changed
         this.cashChange = cashChange; // Decimal object, amount the cash changed
         this.type = StockChangeType[type]; // StockChangeType enum
+        this.wasIncomeTaxPaidEstonia = wasIncomeTaxPaidEstonia;
     }
 }
 
 class IndexFundChangeRecord {
-    constructor(date, valueChange, cashChange, type) {
+    constructor(date, valueChange, cashChange, type, wasIncomeTaxPaidEstonia) {
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
         }
@@ -89,11 +90,12 @@ class IndexFundChangeRecord {
         this.valueChange = valueChange; // Decimal object, amount the asset changed
         this.cashChange = cashChange; // Decimal object, amount the cash changed
         this.type = IndexFundChangeType[type]; // IndexFundChangeType enum
+        this.wasIncomeTaxPaidEstonia = wasIncomeTaxPaidEstonia;
     }
 }
 
 class BondChangeRecord {
-    constructor(date, valueChange, cashChange, type) {
+    constructor(date, valueChange, cashChange, type, wasIncomeTaxPaidEstonia) {
         if (!(date instanceof Date)) {
             throw new Error('Not a Date');
         }
@@ -110,6 +112,7 @@ class BondChangeRecord {
         this.valueChange = valueChange; // Decimal object, amount the asset changed
         this.cashChange = cashChange; // Decimal object, amount the cash changed
         this.type = BondChangeType[type]; // BondChangeType enum
+        this.wasIncomeTaxPaidEstonia = wasIncomeTaxPaidEstonia;
     }
 }
 

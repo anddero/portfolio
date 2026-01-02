@@ -56,6 +56,10 @@ class CashHolding {
         validateHistoryFieldSum(this.#history, 'valueChange', this.#value);
     }
 
+    getHistory() {
+        return this.#history;
+    }
+
     getHistoryTableView() {
         const baseHistory = getCashHistoryTableView(this.#history);
 

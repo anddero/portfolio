@@ -147,7 +147,7 @@ class Portfolio {
         const overview = this.getAssetsOverview();
 
         // Check if asset value is old (at least 5 days behind)
-        const isOld = (date) => date.getTime() < Date.now() - 5 * 24 * 60 * 60 * 1000;
+        const isOld = (date) => date.getTime() < Date.now() - window.APP_CONFIG.assetValueShelfLifeHours * 60 * 60 * 1000;
 
         return {
             assets: overview.map((record, index) => ({
@@ -225,5 +225,13 @@ class Portfolio {
         return {
             totalValueByCurrency
         };
+    }
+
+    getEstonianTaxFreeRemainderTableView() {
+        return Array.from(this.#platforms.entries())
+            .map(([platformName, platform]) => ({
+                platformName,
+                sumTable: platform.getEstonianTaxFreeRemainderTableView()
+            }));
     }
 }
