@@ -503,7 +503,10 @@ function processActionDividend(item, portfolioObj) {
 
     // Update the cash amount on the platform
     warnings = warnings.concat(platform.getCashHolding(item.currency).updateValue(item.netValue, item.date, "STOCK_DIVIDEND"));
-    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "DIVIDEND", false, null, item.taxValue.greaterThan(0)));
+    // For now, we don't have a method to distinguish between already taxed and untaxed dividends,
+    // so we are treating all dividends as already taxed, even if the taxed amount is 0.
+    // Change this to a more proper method (e.g. explicit flag in imported JSON) if there are exceptions.
+    warnings = warnings.concat(stockHolding.updateShares(new Decimal(0), item.netValue, item.date, true, "DIVIDEND", false, null, true));
     return warnings;
 }
 

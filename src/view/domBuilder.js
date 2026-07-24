@@ -366,7 +366,9 @@ function buildEstonianTaxFreeRemainderTable(tableData, divElementId) {
         throw new Error('Not a HTMLDivElement');
     }
 
-    let htmlContent = '';
+    let htmlContent = `
+        <p><strong>Disclaimer:</strong> For now, all dividends are treated as already taxed in this view, even when the imported taxed amount is 0.</p>
+    `;
 
     tableData.forEach(platform => {
         htmlContent += `

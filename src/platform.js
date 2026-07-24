@@ -203,7 +203,7 @@ class Platform {
                 .filter(record => record.date.getFullYear() <= year)
                 .filter(record => record.wasIncomeTaxPaidEstonia)
                 .forEach(record =>
-                    sumByCurrency.set(holding.getCurrency(), sumByCurrency.get(holding.getCurrency()).plus(record.valueChange))
+                    sumByCurrency.set(holding.getCurrency(), sumByCurrency.get(holding.getCurrency()).plus(record.cashChange))
                 );
         });
         return sumByCurrency;
@@ -247,4 +247,3 @@ class Platform {
         await Promise.all(this.getAllHoldings().map(holding => holding.validateAndFinalize()));
     }
 }
-
