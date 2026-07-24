@@ -48,7 +48,8 @@ const ASSET_TYPES = [
     "Cash",
     "Stock",
     "Bond",
-    "IndexFund"
+    "IndexFund",
+    "EstonianTaxFreeCashRemainder"
 ];
 
 // STATE
@@ -941,6 +942,8 @@ function processActionCheck(item, portfolioObj) {
             return processActionCheckBond(item, portfolioObj);
         case "IndexFund":
             return processActionCheckIndexFund(item, portfolioObj);
+        case "EstonianTaxFreeCashRemainder":
+            return processActionCheckEstonianTaxFreeCashRemainder(item, portfolioObj);
         default:
             throw new Error(`Processing of "Check" for asset type "${item.assetType}" is not implemented`);
     }
@@ -1021,6 +1024,26 @@ function processActionCheckIndexFund(item, portfolioObj) {
     // Validate the amount
     if (!sharesAmount.equals(item.totalShares)) {
         warnings.push(`Current shares amount for index fund "${item.assetCode}" is ${sharesAmount} but expected ${item.totalShares}`);
+    }
+
+    return warnings;
+}
+
+/*
+ * Process the "Check" action for asset type "EstonianTaxFreeCashRemainder" of validating
+ * the tax-free cash remainder amount by currency at the end of the record year.
+ */
+function processActionCheckEstonianTaxFreeCashRemainder(item, portfolioObj) {
+    let warnings = [];
+
+    const platform = portfolioObj.getPlatform(item.platform);
+    const remainderByCurrency = platform.getTaxFreeRemainderEstonia(item.date.getFullYear());
+    const remainder = remainderByCurrency.has(item.currency)
+        ? remainderByCurrency.get(item.currency)
+        : new Decimal(0);
+
+    if (!remainder.equals(item.totalValue)) {
+        warnings.push(`Tax-free cash remainder for platform "${item.platform}" in year ${item.date.getFullYear()} and currency "${item.currency}" is ${remainder} but expected ${item.totalValue}`);
     }
 
     return warnings;
@@ -1297,6 +1320,7 @@ function getInputsByActionAndAsset(action, assetType) {
         case "Check":
             switch (assetType) {
                 case "Cash":
+                case "EstonianTaxFreeCashRemainder":
                     return ["date", "notes", "action", "platform", "assetType", "currency", "totalValue"];
                 case "Stock":
                 case "Bond":
