@@ -40,6 +40,10 @@ class Portfolio {
         return this.#platforms.get(name);
     }
 
+    getPlatforms() {
+        return Array.from(this.#platforms.values());
+    }
+
     addPlatform(platform) {
         if (!(platform instanceof Platform)) {
             throw new Error('Not a Platform');

@@ -57,74 +57,79 @@ const ASSET_TYPES = [
 let gActivityList = []; // Raw activity JSON
 let gActivityErrorMap = new Map(); // Errors in the activity JSON, where key is activity index and value is error message
 let gPortfolioState = {}; // Portfolio structured state such as overview, individual asset summaries, etc
+let gLogRecordInsertState = {
+    isEditing: false,
+    draft: null,
+};
 
 // EVENT BINDINGS
 
 document.getElementById('importLogInput').addEventListener('change', onImportLogInputChange);
+document.getElementById('updateLogButton').addEventListener('click', onUpdateLogButtonClick);
 document.getElementById('exportLogButton').addEventListener('click', onExportLogButtonClick);
 
 // EVENT HANDLERS
 
-function setImportLogInputMsg(message, isError) {
+function setStatusMessage(message, isError) {
     document.getElementById("importLogInputMsg").innerText = message;
     document.getElementById("importLogInputMsg").style = `color: ${isError ? "red" : "green"};`;
+}
+
+function reloadAllTables() {
+    tryReloadTable("logTable", reloadLogTable);
+    tryReloadTable("portfolioSummaryContainer", reloadPortfolioSummaryTables);
+    tryReloadTable("assetsOverviewTable", reloadAssetsOverviewTable);
+    tryReloadTable("assetSummaryContainer", reloadAssetHistoryTables);
+    tryReloadTable("estonianTaxFreeRemainderContainer", reloadEstonianTaxFreeRemainderTable);
+}
+
+function setStatusMessageFromProcessingOutcome(activityErrorMap, criticalErrorOccurred) {
+    if (activityErrorMap.size > 0) {
+        if (criticalErrorOccurred) {
+            setStatusMessage(`You have ${activityErrorMap.size} issue(s), where the last detected issue is a critical error. The log processing is incomplete and calculated data partial! See table below for the line where the issue occurred. Please fix the issue and reload the log.`, true);
+        } else {
+            setStatusMessage(`You have ${activityErrorMap.size} warning(s). See table below for the lines where they occurred. The entire log has been processed and it is safe to continue if you choose to ignore the warnings.`, true);
+        }
+    } else {
+        setStatusMessage("All good.", false);
+    }
+}
+
+async function processCurrentActivityAndReloadAllViews() {
+    let portfolioObj;
+    let activityErrorMap;
+    let criticalErrorOccurred;
+    [portfolioObj, activityErrorMap, criticalErrorOccurred] = await processActivityList(gActivityList);
+    gPortfolioState = portfolioObj;
+    gActivityErrorMap = activityErrorMap;
+    setStatusMessageFromProcessingOutcome(activityErrorMap, criticalErrorOccurred);
+    reloadAllTables();
 }
 
 // Reset all global state, process and validate the given file, set the global state and update DOM
 async function onImportLogInputChange(event) {
     console.log("onImportLogInputChange");
 
-    // New state, initially cleared
-    let activityList = [];
-    let activityErrorMap = new Map();
-    let portfolioObj = undefined;
-    let msg = { "text": "Something went wrong.", "isError": true };
-
-    // Call this on every return point to make sure global state and DOM gets updated with new state
-    let updateDom = () => {
-        gActivityList = activityList;
-        gActivityErrorMap = activityErrorMap;
-        gPortfolioState = portfolioObj;
-        setImportLogInputMsg(msg.text, msg.isError);
-        tryReloadTable("logTable", reloadLogTable);
-        tryReloadTable("portfolioSummaryContainer", reloadPortfolioSummaryTables);
-        tryReloadTable("assetsOverviewTable", reloadAssetsOverviewTable);
-        tryReloadTable("assetSummaryContainer", reloadAssetHistoryTables);
-        tryReloadTable("estonianTaxFreeRemainderContainer", reloadEstonianTaxFreeRemainderTable);
-    };
-
     const file = event.target.files[0];
     if (!file) {
-        msg.text = "No file selected.";
-        msg.isError = true;
-        return updateDom();
+        gActivityList = [];
+        gActivityErrorMap = new Map();
+        gPortfolioState = {};
+        setStatusMessage("No file selected.", true);
+        reloadAllTables();
+        return;
     }
 
     try {
-        activityList = await readJsonFile(file); // await very much needed here as readJsonFile cannot be made sync function
-        let criticalErrorOccurred;
-        [portfolioObj, activityErrorMap, criticalErrorOccurred] = await processActivityList(activityList);
-        if (activityErrorMap.size > 0)
-        {
-            if (criticalErrorOccurred) {
-                msg.text = `You have ${activityErrorMap.size} issue(s), where the last detected issue is a critical error. The log processing is incomplete and calculated data partial! See table below for the line where the issue occurred. Please fix the issue and reload the log.`;
-            } else {
-                msg.text = `You have ${activityErrorMap.size} warning(s). See table below for the lines where they occurred. The entire log has been processed and it is safe to continue if you choose to ignore the warnings.`
-            }
-            msg.isError = true;
-        }
-        else
-        {
-            msg.text = "All good.";
-            msg.isError = false;
-        }
+        gActivityList = await readJsonFile(file); // await very much needed here as readJsonFile cannot be made sync function
+        await processCurrentActivityAndReloadAllViews();
     } catch (error) {
         console.error(error);
-        msg.text = `Critical error, no data has been processed. Please fix the issue and reload the log. Error: ${error.message}`;
-        msg.isError = true;
+        gActivityErrorMap = new Map();
+        gPortfolioState = {};
+        setStatusMessage(`Critical error, no data has been processed. Please fix the issue and reload the log. Error: ${error.message}`, true);
+        reloadAllTables();
     }
-
-    return updateDom();
 }
 
 // Reload the portfolio summary table view, based on global portfolio object
@@ -204,6 +209,21 @@ function reloadLogTable(id) {
         </tbody>
         `;
 
+    const tbody = logTable.getElementsByTagName("tbody")[0];
+    const editorRow = document.createElement("tr");
+    if (!gLogRecordInsertState.isEditing) {
+        editorRow.innerHTML = `
+            <td colspan="${ALL_POSSIBLE_JSON_FIELDS.length + 1}">
+                <button type="button" onclick="onStartAddLogRecord()">+</button>
+            </td>
+        `;
+    } else {
+        const draft = gLogRecordInsertState.draft ?? getDefaultLogRecordDraft();
+        const saveDisabled = !canSaveDraftRecord(draft);
+        editorRow.innerHTML = `<td>${buildLogEditorActionButtons(saveDisabled)}</td>${ALL_POSSIBLE_JSON_FIELDS.map(field => `<td>${buildLogEditorInputByField(field, draft)}</td>`).join('')}`;
+    }
+    tbody.appendChild(editorRow);
+
     const rowLength = ALL_POSSIBLE_JSON_FIELDS.length + 1; // +1 for index column
     for (const [i, item] of gActivityList.toReversed().entries()) {
         let rowNo = gActivityList.length - i; // Reverse order, so the last item is at the top
@@ -211,7 +231,7 @@ function reloadLogTable(id) {
         row.innerHTML = [`<td>${rowNo}</td>`].concat(ALL_POSSIBLE_JSON_FIELDS
             .map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`))
             .join('');
-        logTable.getElementsByTagName("tbody")[0].appendChild(row);
+        tbody.appendChild(row);
         const errorIndex = gActivityList.length - i - 1;
         if (gActivityErrorMap.has(errorIndex)) {
             const errorRow = document.createElement("tr");
@@ -220,9 +240,375 @@ function reloadLogTable(id) {
                         Applies to the above record: ${gActivityErrorMap.get(errorIndex)}
                     </td>
                 `
-            logTable.getElementsByTagName("tbody")[0].appendChild(errorRow);
+            tbody.appendChild(errorRow);
         }
     }
+}
+
+function getDefaultLogRecordDraft() {
+    return {
+        date: dateToInputIso(new Date()),
+        action: "Check",
+        platform: "",
+        assetType: "Cash",
+        assetCode: "",
+        totalShares: "",
+        currency: "",
+        unitValue: "",
+        totalValue: "",
+        feeValue: "",
+        grossValue: "",
+        netValue: "",
+        taxValue: "",
+        fromPlatform: "",
+        toPlatform: "",
+        fromCurrency: "",
+        toCurrency: "",
+        fromValue: "",
+        toValue: "",
+        fromTotalShares: "",
+        toTotalShares: "",
+        fromToCoefficient: "",
+        friendlyName: "",
+        notes: "",
+    };
+}
+
+function onStartAddLogRecord() {
+    gLogRecordInsertState.isEditing = true;
+    gLogRecordInsertState.draft = getDefaultLogRecordDraft();
+    tryReloadTable("logTable", reloadLogTable);
+}
+
+function onCancelAddLogRecord() {
+    gLogRecordInsertState.isEditing = false;
+    gLogRecordInsertState.draft = null;
+    tryReloadTable("logTable", reloadLogTable);
+}
+
+function onLogDraftInputChange(field, value) {
+    if (!gLogRecordInsertState.isEditing) {
+        return;
+    }
+    const draft = gLogRecordInsertState.draft;
+    draft[field] = value;
+
+    if (field === "action" && !ACTIONS[draft.action]) {
+        draft.assetType = "";
+        draft.assetCode = "";
+    }
+    if (field === "platform" || field === "assetType" || field === "action") {
+        normalizeDraftAssetCode(draft);
+    }
+    if (field === "assetCode") {
+        applyAssetDefaultsToDraft(draft);
+    }
+
+    tryReloadTable("logTable", reloadLogTable);
+}
+
+function onSaveAddLogRecord() {
+    if (!gLogRecordInsertState.isEditing) {
+        return;
+    }
+    const draft = gLogRecordInsertState.draft;
+    if (!canSaveDraftRecord(draft)) {
+        return;
+    }
+
+    let appendedActivityList;
+    try {
+        const newItem = buildRawItemFromDraft(draft);
+        appendedActivityList = gActivityList.concat([newItem]);
+    } catch (error) {
+        setStatusMessage(`Cannot save record: ${error.message}`, true);
+        return;
+    }
+
+    gActivityList = appendedActivityList;
+    gLogRecordInsertState.isEditing = false;
+    gLogRecordInsertState.draft = null;
+    setStatusMessage("Record appended. Click Update to recalculate.", false);
+    tryReloadTable("logTable", reloadLogTable);
+}
+
+function buildRawItemFromDraft(draft) {
+    const expectedFields = getExpectedFieldsForDraft(draft);
+    if (expectedFields === undefined) {
+        throw new Error("Action and asset type combination is not supported");
+    }
+    const item = {};
+    expectedFields.forEach(field => {
+        const value = draft[field];
+        if ((field === "notes" || field === "feeValue") && isBlank(value)) {
+            return;
+        }
+        if (field === "date") {
+            item[field] = inputDateIsoToDotDate(value);
+            return;
+        }
+        item[field] = value;
+    });
+    return item;
+}
+
+function getExpectedFieldsForDraft(draft) {
+    if (isBlank(draft.action)) {
+        return undefined;
+    }
+    if (!ACTIONS[draft.action]) {
+        return getInputsByActionAndAsset(draft.action, undefined);
+    }
+    if (isBlank(draft.assetType)) {
+        return undefined;
+    }
+    return getInputsByActionAndAsset(draft.action, draft.assetType);
+}
+
+function canSaveDraftRecord(draft) {
+    const expectedFields = getExpectedFieldsForDraft(draft);
+    if (expectedFields === undefined) {
+        return false;
+    }
+    const optionalFields = new Set(["notes", "feeValue"]);
+    for (const field of expectedFields) {
+        if (!optionalFields.has(field) && isBlank(draft[field])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function buildLogEditorActionButtons(saveDisabled) {
+    return `
+        <button type="button" onclick="onSaveAddLogRecord()" ${saveDisabled ? "disabled" : ""}>Save</button>
+        <button type="button" onclick="onCancelAddLogRecord()">Cancel</button>
+    `;
+}
+
+function buildLogEditorInputByField(field, draft) {
+    const expectedFields = getExpectedFieldsForDraft(draft) ?? [];
+    const disabled = isDraftFieldEditable(field, draft, expectedFields) ? "" : "disabled";
+    const value = draft[field] ?? "";
+
+    switch (field) {
+        case "date":
+            return `<input type="date" value="${escapeHtml(value)}" onchange="onLogDraftInputChange('date', this.value)" ${disabled}>`;
+        case "action":
+            return `
+                <select onchange="onLogDraftInputChange('action', this.value)">
+                    ${Object.getOwnPropertyNames(ACTIONS).map(action => `<option value="${escapeHtml(action)}" ${action === value ? "selected" : ""}>${action}</option>`).join('')}
+                </select>
+            `;
+        case "assetType":
+            return `
+                <select onchange="onLogDraftInputChange('assetType', this.value)" ${disabled}>
+                    <option value=""></option>
+                    ${ASSET_TYPES.map(assetType => `<option value="${escapeHtml(assetType)}" ${assetType === value ? "selected" : ""}>${assetType}</option>`).join('')}
+                </select>
+            `;
+        case "platform":
+        case "fromPlatform":
+        case "toPlatform":
+            if (shouldUseTextInputForPlatform(field, draft)) {
+                return `<input type="text" value="${escapeHtml(value)}" onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>`;
+            }
+            return `
+                <select onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>
+                    <option value=""></option>
+                    ${getKnownPlatforms().map(platform => `<option value="${escapeHtml(platform)}" ${platform === value ? "selected" : ""}>${platform}</option>`).join('')}
+                </select>
+            `;
+        case "assetCode":
+            if (draft.action === "NewAsset") {
+                return `<input type="text" value="${escapeHtml(value)}" onchange="onLogDraftInputChange('assetCode', this.value)" ${disabled}>`;
+            }
+            return `
+                <select onchange="onLogDraftInputChange('assetCode', this.value)" ${disabled}>
+                    <option value=""></option>
+                    ${getKnownAssetsForSelection(draft).map(asset => `<option value="${escapeHtml(asset.code)}" ${asset.code === value ? "selected" : ""}>${escapeHtml(asset.friendlyName)} (${escapeHtml(asset.code)})</option>`).join('')}
+                </select>
+            `;
+        case "currency":
+            if (draft.action === "NewAsset" && draft.assetType === "Cash") {
+                return `<input type="text" value="${escapeHtml(value)}" onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>`;
+            }
+            return `
+                <select onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>
+                    <option value=""></option>
+                    ${getKnownCurrenciesForDraftField(field, draft).map(currency => `<option value="${escapeHtml(currency)}" ${currency === value ? "selected" : ""}>${currency}</option>`).join('')}
+                </select>
+            `;
+        case "fromCurrency":
+        case "toCurrency":
+            return `
+                <select onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>
+                    <option value=""></option>
+                    ${getKnownCurrenciesForDraftField(field, draft).map(currency => `<option value="${escapeHtml(currency)}" ${currency === value ? "selected" : ""}>${currency}</option>`).join('')}
+                </select>
+            `;
+        case "notes":
+        case "friendlyName":
+            return `<input type="text" value="${escapeHtml(value)}" onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>`;
+        case "totalShares":
+        case "unitValue":
+        case "totalValue":
+        case "feeValue":
+        case "grossValue":
+        case "netValue":
+        case "taxValue":
+        case "fromValue":
+        case "toValue":
+        case "fromTotalShares":
+        case "toTotalShares":
+        case "fromToCoefficient":
+            return `<input type="number" step="any" value="${escapeHtml(value)}" onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>`;
+        default:
+            return `<input type="text" value="${escapeHtml(value)}" onchange="onLogDraftInputChange('${field}', this.value)" ${disabled}>`;
+    }
+}
+
+function shouldUseTextInputForPlatform(field, draft) {
+    return draft.action === "NewPlatform" && field === "platform";
+}
+
+function isDraftFieldEditable(field, draft, expectedFields) {
+    if (field === "action" || field === "date" || field === "notes") {
+        return true;
+    }
+    if (field === "assetType") {
+        return isBlank(draft.action) || ACTIONS[draft.action] === true;
+    }
+    if (field === "platform") {
+        return draft.action !== "Transfer";
+    }
+    if (field === "fromPlatform" || field === "toPlatform") {
+        return draft.action === "Transfer";
+    }
+    if (field === "fromCurrency" || field === "toCurrency") {
+        return draft.action === "CurrencyConversion";
+    }
+    if (ACTIONS[draft.action] && isBlank(draft.assetType)) {
+        return false;
+    }
+    return expectedFields.includes(field);
+}
+
+function getKnownPlatforms() {
+    if (!(gPortfolioState instanceof Portfolio)) {
+        return [];
+    }
+    return gPortfolioState.getPlatforms().map(p => p.getName());
+}
+
+function getKnownCurrenciesForDraftField(field, draft) {
+    const platform = getCurrencySourcePlatform(field, draft);
+    if (isBlank(platform)) {
+        return [];
+    }
+    return getKnownCashCurrenciesByPlatform(platform);
+}
+
+function getCurrencySourcePlatform(field, draft) {
+    if (field === "currency" && draft.action === "Transfer") {
+        return draft.fromPlatform;
+    }
+    return draft.platform;
+}
+
+function getKnownCashCurrenciesByPlatform(platformName) {
+    if (!(gPortfolioState instanceof Portfolio) || !gPortfolioState.hasPlatform(platformName)) {
+        return [];
+    }
+    return gPortfolioState.getPlatform(platformName).getCashHoldings().map(h => h.getCurrency());
+}
+
+function getKnownAssetsByPlatformAndType(platformName, assetType) {
+    if (isBlank(platformName) || isBlank(assetType)) {
+        return [];
+    }
+    if (!(gPortfolioState instanceof Portfolio) || !gPortfolioState.hasPlatform(platformName)) {
+        return [];
+    }
+    const platform = gPortfolioState.getPlatform(platformName);
+    let holdings;
+    switch (assetType) {
+        case "Stock":
+            holdings = platform.getStockHoldings();
+            break;
+        case "IndexFund":
+            holdings = platform.getIndexFundHoldings();
+            break;
+        case "Bond":
+            holdings = platform.getBondHoldings();
+            break;
+        default:
+            return [];
+    }
+    return holdings.map(h => ({
+        code: h.getCode(),
+        friendlyName: h.getFriendlyName(),
+        currency: h.getCurrency(),
+    }));
+}
+
+function getKnownAssetsForSelection(draft) {
+    return getKnownAssetsByPlatformAndType(draft.platform, draft.assetType);
+}
+
+function normalizeDraftAssetCode(draft) {
+    if (draft.action === "NewAsset") {
+        return;
+    }
+    const options = getKnownAssetsForSelection(draft);
+    if (options.length === 0) {
+        draft.assetCode = "";
+        return;
+    }
+    const exists = options.some(asset => asset.code === draft.assetCode);
+    if (!exists) {
+        draft.assetCode = "";
+    }
+}
+
+function applyAssetDefaultsToDraft(draft) {
+    if (draft.action === "NewAsset" || isBlank(draft.assetCode)) {
+        return;
+    }
+    const asset = getKnownAssetsForSelection(draft).find(item => item.code === draft.assetCode);
+    if (!asset) {
+        return;
+    }
+    if (!isBlank(asset.friendlyName)) {
+        draft.friendlyName = asset.friendlyName;
+    }
+    if (!isBlank(asset.currency) && isBlank(draft.currency)) {
+        draft.currency = asset.currency;
+    }
+}
+
+function isBlank(value) {
+    return typeof value !== "string" || value.trim() === "";
+}
+
+function dateToInputIso(date) {
+    const d = getLocalDate(date);
+    return `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
+}
+
+function inputDateIsoToDotDate(isoDate) {
+    if (isBlank(isoDate)) {
+        throw new Error("Date is missing");
+    }
+    return isoDate.replaceAll("-", ".");
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
 }
 
 function onExportLogButtonClick() {
@@ -238,6 +624,18 @@ function onExportLogButtonClick() {
     document.body.appendChild(downloadElement);
     downloadElement.click();
     document.body.removeChild(downloadElement);
+}
+
+async function onUpdateLogButtonClick() {
+    if (!Array.isArray(gActivityList) || gActivityList.length === 0) {
+        setStatusMessage("No log data to update.", true);
+        return;
+    }
+    try {
+        await processCurrentActivityAndReloadAllViews();
+    } catch (error) {
+        setStatusMessage(`Critical error, no data has been processed. Please fix the issue and reload the log. Error: ${error.message}`, true);
+    }
 }
 
 // FUNCTIONS WITHOUT SIDE EFFECTS

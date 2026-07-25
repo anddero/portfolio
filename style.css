@@ -42,3 +42,9 @@
     height: 200px;
     overflow-y: auto;
 }
+
+#logTable input,
+#logTable select {
+    width: 120px;
+    box-sizing: border-box;
+}
