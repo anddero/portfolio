@@ -180,6 +180,6 @@ class BondHolding {
             time: record.date,
             cashFlow: record.cashChange.toNumber(),
         })).concat([{time: this.#latestUnitValueAndDate.date, cashFlow: finalPotentialInflow.toNumber()}]);
-        return [calculateXirrCustom(flows), calculateXirrLib(flows).getOrLog(NaN, 'BondHolding::calculateXirrs()')];
+        return [calculateXirrCustomSafe(flows, 'BondHolding::calculateXirrs()'), calculateXirrLib(flows).getOrLog(NaN, 'BondHolding::calculateXirrs()')];
     }
 }

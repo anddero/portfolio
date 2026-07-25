@@ -1,5 +1,23 @@
 // DOM building functions for different table types
 
+function formatXirrValue(value) {
+    if (
+        value === null
+        || value === undefined
+        || value === 'NaN'
+        || value === 'Infinity'
+        || value === '-Infinity'
+        || (typeof value === 'number' && !Number.isFinite(value))
+    ) {
+        return '<span title="XIRR calculation failed">⚠️</span>';
+    }
+    return value;
+}
+
+function formatXirrPair(xirrCustom, xirrLib) {
+    return `${formatXirrValue(xirrCustom)}/${formatXirrValue(xirrLib)}`;
+}
+
 function buildAssetsOverviewTable(tableData, tableElementId) {
     if (!tableElementId || typeof tableElementId !== 'string') {
         throw new Error('tableElementId must be a non-empty string');
@@ -43,7 +61,7 @@ function buildAssetsOverviewTable(tableData, tableElementId) {
                     <td>${asset.totalSell}</td>
                     <td>${asset.totalIncome}</td>
                     <td>${asset.totalProfit}</td>
-                    <td>${asset.xirrCustom}/${asset.xirrLib}</td>
+                    <td>${formatXirrPair(asset.xirrCustom, asset.xirrLib)}</td>
                     <td>${asset.currency}</td>
                     <td>${asset.assetCode}</td>
                 </tr>
@@ -76,7 +94,7 @@ function buildStockHistoryTable(tableData) {
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
-                <td colspan="5">${tableData.xirrCustom}/${tableData.xirrLib}</td>
+                <td colspan="5">${formatXirrPair(tableData.xirrCustom, tableData.xirrLib)}</td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">Total Cash</td>
@@ -162,7 +180,7 @@ function buildBondHistoryTable(tableData) {
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
-                <td colspan="5">${tableData.xirrCustom}/${tableData.xirrLib}</td>
+                <td colspan="5">${formatXirrPair(tableData.xirrCustom, tableData.xirrLib)}</td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">Total Cash</td>
@@ -215,7 +233,7 @@ function buildIndexHistoryTable(tableData) {
             </tr>
             <tr class="summary-row">
                 <td colspan="2">XIRR</td>
-                <td colspan="5">${tableData.xirrCustom}/${tableData.xirrLib}</td>
+                <td colspan="5">${formatXirrPair(tableData.xirrCustom, tableData.xirrLib)}</td>
             </tr>
             <tr class="summary-row">
                 <td colspan="2">Total Cash</td>

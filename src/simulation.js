@@ -80,6 +80,21 @@
  *     Must contain at least one positive and one negative cash flow.
  * @returns {number} - The XIRR of the asset or NaN if the calculation ran out of budget.
  */
+/**
+ * Same as calculateXirrCustom, but returns NaN and logs a warning instead of throwing on failure.
+ * @param transactions See calculateXirrCustom.
+ * @param context {string} Label used in the warning message when a failure occurs.
+ * @returns {number} The XIRR or NaN if it could not be calculated.
+ */
+function calculateXirrCustomSafe(transactions, context) {
+    try {
+        return calculateXirrCustom(transactions);
+    } catch (error) {
+        console.warn(`${context}: calculateXirrCustom failed: ${error.message}`);
+        return NaN;
+    }
+}
+
 function calculateXirrCustom(transactions) {
     if (!Array.isArray(transactions)) {
         throw new Error(`Invalid transactions: ${transactions}`);

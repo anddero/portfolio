@@ -185,6 +185,6 @@ class IndexFundHolding {
             time: record.date,
             cashFlow: record.cashChange.toNumber(),
         })).concat([{time: this.#latestUnitValueAndDate.date, cashFlow: finalPotentialInflow.toNumber()}]);
-        return [calculateXirrCustom(flows), calculateXirrLib(flows).getOrLog(NaN, 'IndexFundHolding::calculateXirrs()')];
+        return [calculateXirrCustomSafe(flows, 'IndexFundHolding::calculateXirrs()'), calculateXirrLib(flows).getOrLog(NaN, 'IndexFundHolding::calculateXirrs()')];
     }
 }

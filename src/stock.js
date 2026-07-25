@@ -223,6 +223,6 @@ class StockHolding {
             time: record.date,
             cashFlow: record.cashChange.toNumber(),
         })).concat([{time: this.#latestUnitValueAndDate.date, cashFlow: finalPotentialInflow.toNumber()}]);
-        return [calculateXirrCustom(flows), calculateXirrLib(flows).getOrLog(NaN, 'StockHolding::calculateXirrs()')];
+        return [calculateXirrCustomSafe(flows, 'StockHolding::calculateXirrs()'), calculateXirrLib(flows).getOrLog(NaN, 'StockHolding::calculateXirrs()')];
     }
 }

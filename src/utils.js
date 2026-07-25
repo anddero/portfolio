@@ -581,7 +581,8 @@ function findAnyRoot(lowerBound, upperBound, budget, delta, fn) {
                 binarySearch.shrink(true);
             }
         }
-        throw new Error('Binary search did not complete in 1000 iterations');
+        console.warn('Binary search did not complete in 1000 iterations');
+        return NaN;
     }
     return NaN;
 }
