@@ -48,3 +48,15 @@
     width: 120px;
     box-sizing: border-box;
 }
+
+#logTable .log-row-actions {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 6px;
+}
+
+#logTable .log-row-actions button {
+    padding: 0 4px;
+    font-size: 12px;
+    line-height: 1.4;
+}

@@ -57,8 +57,9 @@ const ASSET_TYPES = [
 let gActivityList = []; // Raw activity JSON
 let gActivityErrorMap = new Map(); // Errors in the activity JSON, where key is activity index and value is error message
 let gPortfolioState = {}; // Portfolio structured state such as overview, individual asset summaries, etc
-let gLogRecordInsertState = {
-    isEditing: false,
+let gLogEditorState = {
+    mode: "none", // "none" | "insert" | "edit"
+    editIndex: null, // index into gActivityList when mode === "edit"
     draft: null,
 };
 
@@ -210,34 +211,43 @@ function reloadLogTable(id) {
         `;
 
     const tbody = logTable.getElementsByTagName("tbody")[0];
-    const editorRow = document.createElement("tr");
-    if (!gLogRecordInsertState.isEditing) {
-        editorRow.innerHTML = `
-            <td colspan="${ALL_POSSIBLE_JSON_FIELDS.length + 1}">
+    const rowLength = ALL_POSSIBLE_JSON_FIELDS.length + 1; // +1 for index/actions column
+
+    if (gLogEditorState.mode === "none") {
+        const appendRow = document.createElement("tr");
+        appendRow.innerHTML = `
+            <td colspan="${rowLength}">
                 <button type="button" onclick="onStartAddLogRecord()">+</button>
             </td>
         `;
-    } else {
-        const draft = gLogRecordInsertState.draft ?? getDefaultLogRecordDraft();
+        tbody.appendChild(appendRow);
+    } else if (gLogEditorState.mode === "insert") {
+        const draft = gLogEditorState.draft ?? getDefaultLogRecordDraft();
         const saveDisabled = !canSaveDraftRecord(draft);
+        const editorRow = document.createElement("tr");
         editorRow.innerHTML = `<td>${buildLogEditorActionButtons(saveDisabled)}</td>${ALL_POSSIBLE_JSON_FIELDS.map(field => `<td>${buildLogEditorInputByField(field, draft)}</td>`).join('')}`;
+        tbody.appendChild(editorRow);
     }
-    tbody.appendChild(editorRow);
 
-    const rowLength = ALL_POSSIBLE_JSON_FIELDS.length + 1; // +1 for index column
     for (const [i, item] of gActivityList.toReversed().entries()) {
-        let rowNo = gActivityList.length - i; // Reverse order, so the last item is at the top
+        const actualIndex = gActivityList.length - i - 1;
+        const rowNo = actualIndex + 1;
         const row = document.createElement("tr");
-        row.innerHTML = [`<td>${rowNo}</td>`].concat(ALL_POSSIBLE_JSON_FIELDS
-            .map(field => `<td>${item[field] === undefined ? '' : item[field]}</td>`))
-            .join('');
+        if (gLogEditorState.mode === "edit" && gLogEditorState.editIndex === actualIndex) {
+            const draft = gLogEditorState.draft ?? getDefaultLogRecordDraft();
+            const saveDisabled = !canSaveDraftRecord(draft);
+            row.innerHTML = `<td>${rowNo}${buildLogEditorActionButtons(saveDisabled)}</td>${ALL_POSSIBLE_JSON_FIELDS.map(field => `<td>${buildLogEditorInputByField(field, draft)}</td>`).join('')}`;
+        } else {
+            row.innerHTML = [`<td>${rowNo}${buildLogRowActionButtons(actualIndex)}</td>`]
+                .concat(ALL_POSSIBLE_JSON_FIELDS.map(field => `<td>${item[field] === undefined ? '' : escapeHtml(item[field])}</td>`))
+                .join('');
+        }
         tbody.appendChild(row);
-        const errorIndex = gActivityList.length - i - 1;
-        if (gActivityErrorMap.has(errorIndex)) {
+        if (gActivityErrorMap.has(actualIndex)) {
             const errorRow = document.createElement("tr");
             errorRow.innerHTML = `
                     <td colspan="${rowLength}"style="color: red;">
-                        Applies to the above record: ${gActivityErrorMap.get(errorIndex)}
+                        Applies to the above record: ${escapeHtml(gActivityErrorMap.get(actualIndex))}
                     </td>
                 `
             tbody.appendChild(errorRow);
@@ -275,22 +285,37 @@ function getDefaultLogRecordDraft() {
 }
 
 function onStartAddLogRecord() {
-    gLogRecordInsertState.isEditing = true;
-    gLogRecordInsertState.draft = getDefaultLogRecordDraft();
+    gLogEditorState.mode = "insert";
+    gLogEditorState.editIndex = null;
+    gLogEditorState.draft = getDefaultLogRecordDraft();
+    tryReloadTable("logTable", reloadLogTable);
+}
+
+function onStartEditLogRecord(index) {
+    if (gLogEditorState.mode !== "none") {
+        return;
+    }
+    if (!Number.isInteger(index) || index < 0 || index >= gActivityList.length) {
+        return;
+    }
+    gLogEditorState.mode = "edit";
+    gLogEditorState.editIndex = index;
+    gLogEditorState.draft = buildDraftFromItem(gActivityList[index]);
     tryReloadTable("logTable", reloadLogTable);
 }
 
 function onCancelAddLogRecord() {
-    gLogRecordInsertState.isEditing = false;
-    gLogRecordInsertState.draft = null;
+    gLogEditorState.mode = "none";
+    gLogEditorState.editIndex = null;
+    gLogEditorState.draft = null;
     tryReloadTable("logTable", reloadLogTable);
 }
 
 function onLogDraftInputChange(field, value) {
-    if (!gLogRecordInsertState.isEditing) {
+    if (gLogEditorState.mode === "none") {
         return;
     }
-    const draft = gLogRecordInsertState.draft;
+    const draft = gLogEditorState.draft;
     draft[field] = value;
 
     if (field === "action" && !ACTIONS[draft.action]) {
@@ -308,27 +333,79 @@ function onLogDraftInputChange(field, value) {
 }
 
 function onSaveAddLogRecord() {
-    if (!gLogRecordInsertState.isEditing) {
+    if (gLogEditorState.mode === "none") {
         return;
     }
-    const draft = gLogRecordInsertState.draft;
+    const draft = gLogEditorState.draft;
     if (!canSaveDraftRecord(draft)) {
         return;
     }
 
-    let appendedActivityList;
+    let newItem;
     try {
-        const newItem = buildRawItemFromDraft(draft);
-        appendedActivityList = gActivityList.concat([newItem]);
+        newItem = buildRawItemFromDraft(draft);
     } catch (error) {
         setStatusMessage(`Cannot save record: ${error.message}`, true);
         return;
     }
 
-    gActivityList = appendedActivityList;
-    gLogRecordInsertState.isEditing = false;
-    gLogRecordInsertState.draft = null;
-    setStatusMessage("Record appended. Click Update to recalculate.", false);
+    if (gLogEditorState.mode === "insert") {
+        gActivityList = gActivityList.concat([newItem]);
+        setStatusMessage("Record appended. Click Update to recalculate.", false);
+    } else if (gLogEditorState.mode === "edit") {
+        const index = gLogEditorState.editIndex;
+        if (!Number.isInteger(index) || index < 0 || index >= gActivityList.length) {
+            setStatusMessage("Cannot save record: invalid edit index.", true);
+            return;
+        }
+        const updated = gActivityList.slice();
+        updated[index] = newItem;
+        gActivityList = updated;
+        setStatusMessage("Record updated. Click Update to recalculate.", false);
+    }
+    gActivityErrorMap = new Map();
+    gLogEditorState.mode = "none";
+    gLogEditorState.editIndex = null;
+    gLogEditorState.draft = null;
+    tryReloadTable("logTable", reloadLogTable);
+}
+
+function onDeleteLogRecord(index) {
+    if (gLogEditorState.mode !== "none") {
+        return;
+    }
+    if (!Number.isInteger(index) || index < 0 || index >= gActivityList.length) {
+        return;
+    }
+    if (!window.confirm(`Delete record #${index + 1}? This cannot be undone.`)) {
+        return;
+    }
+    const updated = gActivityList.slice();
+    updated.splice(index, 1);
+    gActivityList = updated;
+    gActivityErrorMap = new Map();
+    setStatusMessage("Record deleted. Click Update to recalculate.", false);
+    tryReloadTable("logTable", reloadLogTable);
+}
+
+function onMoveLogRecord(index, direction) {
+    if (gLogEditorState.mode !== "none") {
+        return;
+    }
+    if (!Number.isInteger(index) || index < 0 || index >= gActivityList.length) {
+        return;
+    }
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= gActivityList.length) {
+        return;
+    }
+    const updated = gActivityList.slice();
+    const tmp = updated[index];
+    updated[index] = updated[targetIndex];
+    updated[targetIndex] = tmp;
+    gActivityList = updated;
+    gActivityErrorMap = new Map();
+    setStatusMessage("Record moved. Click Update to recalculate.", false);
     tryReloadTable("logTable", reloadLogTable);
 }
 
@@ -384,6 +461,31 @@ function buildLogEditorActionButtons(saveDisabled) {
         <button type="button" onclick="onSaveAddLogRecord()" ${saveDisabled ? "disabled" : ""}>Save</button>
         <button type="button" onclick="onCancelAddLogRecord()">Cancel</button>
     `;
+}
+
+function buildLogRowActionButtons(index) {
+    const disableUp = index === gActivityList.length - 1 ? "disabled" : "";
+    const disableDown = index === 0 ? "disabled" : "";
+    return `
+        <div class="log-row-actions">
+            <button type="button" title="Edit" onclick="onStartEditLogRecord(${index})">✎</button>
+            <button type="button" title="Move up" onclick="onMoveLogRecord(${index}, 1)" ${disableUp}>↑</button>
+            <button type="button" title="Move down" onclick="onMoveLogRecord(${index}, -1)" ${disableDown}>↓</button>
+            <button type="button" title="Delete" onclick="onDeleteLogRecord(${index})">✕</button>
+        </div>
+    `;
+}
+
+function buildDraftFromItem(item) {
+    const draft = {};
+    ALL_POSSIBLE_JSON_FIELDS.forEach(field => {
+        const v = item[field];
+        draft[field] = v === undefined || v === null ? "" : String(v);
+    });
+    if (!isBlank(draft.date)) {
+        draft.date = draft.date.replaceAll(".", "-");
+    }
+    return draft;
 }
 
 function buildLogEditorInputByField(field, draft) {
