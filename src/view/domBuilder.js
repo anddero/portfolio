@@ -413,3 +413,123 @@ function buildEstonianTaxFreeRemainderTable(tableData, divElementId) {
 
     divElement.innerHTML = htmlContent;
 }
+
+// Portfolio chart singleton, kept so we can dispose/resize on reload
+let _portfolioChartInstance = null;
+
+function buildPortfolioChart(tablesData, divElementId) {
+    if (!divElementId || typeof divElementId !== 'string') {
+        throw new Error('divElementId must be a non-empty string');
+    }
+    const divElement = document.getElementById(divElementId);
+    if (!(divElement instanceof HTMLDivElement)) {
+        throw new Error('Not a HTMLDivElement');
+    }
+    if (typeof echarts === 'undefined') {
+        divElement.innerText = 'Chart library (ECharts) failed to load.';
+        return;
+    }
+
+    if (_portfolioChartInstance) {
+        _portfolioChartInstance.dispose();
+        _portfolioChartInstance = null;
+    }
+
+    const cashSeries = (tablesData.cashList || []).map(holding => ({
+        name: holding.title,
+        type: 'line',
+        step: 'end',
+        showSymbol: true,
+        symbolSize: 5,
+        emphasis: { focus: 'series' },
+        data: (holding.table.history || []).map(record => [
+            parsePortfolioViewDate(record.date),
+            record.balance,
+            record.action,
+            record.change,
+        ]),
+    }));
+
+    const hasData = cashSeries.some(series => series.data.length > 0);
+    if (!hasData) {
+        divElement.innerHTML = '<p>No cash history to display. Load a portfolio to see the chart.</p>';
+        return;
+    }
+
+    const legendNames = cashSeries.map(series => series.name);
+    const option = {
+        title: {
+            text: 'Cash balance over time',
+            subtext: 'One line per cash holding (values are in each holding\'s own currency)',
+            left: 'center',
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' },
+            formatter: params => formatPortfolioChartTooltip(params),
+        },
+        legend: {
+            type: 'scroll',
+            data: legendNames,
+            top: 50,
+        },
+        grid: { left: 60, right: 40, top: 100, bottom: 80 },
+        xAxis: { type: 'time' },
+        yAxis: { type: 'value', scale: true },
+        dataZoom: [
+            { type: 'inside' },
+            { type: 'slider', bottom: 20 },
+        ],
+        series: cashSeries,
+    };
+
+    _portfolioChartInstance = echarts.init(divElement);
+    _portfolioChartInstance.setOption(option);
+
+    if (!buildPortfolioChart._resizeBound) {
+        window.addEventListener('resize', () => {
+            if (_portfolioChartInstance) {
+                _portfolioChartInstance.resize();
+            }
+        });
+        buildPortfolioChart._resizeBound = true;
+    }
+}
+
+function parsePortfolioViewDate(viewDate) {
+    if (typeof viewDate !== 'string') {
+        return null;
+    }
+    const parts = viewDate.trim().split(/\s+/);
+    if (parts.length !== 3) {
+        const fallback = new Date(viewDate);
+        return isNaN(fallback.getTime()) ? null : fallback;
+    }
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const year = parseInt(parts[0], 10);
+    const month = monthNames.indexOf(parts[1]);
+    const day = parseInt(parts[2], 10);
+    if (!Number.isFinite(year) || month < 0 || !Number.isFinite(day)) {
+        return null;
+    }
+    return new Date(year, month, day);
+}
+
+function formatPortfolioChartTooltip(params) {
+    if (!Array.isArray(params) || params.length === 0) {
+        return '';
+    }
+    const axisDate = params[0].axisValueLabel || '';
+    const rows = params.map(p => {
+        const dataArr = Array.isArray(p.data) ? p.data : [];
+        const balance = dataArr[1];
+        const action = dataArr[2];
+        const change = dataArr[3];
+        const balanceStr = balance === undefined || balance === null ? '' : Number(balance).toLocaleString();
+        const changeStr = change === undefined || change === null || change === 0
+            ? ''
+            : ` <span style="color:${Number(change) >= 0 ? '#2e7d32' : '#c62828'}">(${Number(change) >= 0 ? '+' : ''}${Number(change).toLocaleString()}${action ? ' ' + action : ''})</span>`;
+        return `${p.marker}${p.seriesName}: <b>${balanceStr}</b>${changeStr}`;
+    }).join('<br/>');
+    return `<div style="font-weight:bold;margin-bottom:4px">${axisDate}</div>${rows}`;
+}

@@ -82,6 +82,7 @@ function reloadAllTables() {
     tryReloadTable("assetsOverviewTable", reloadAssetsOverviewTable);
     tryReloadTable("assetSummaryContainer", reloadAssetHistoryTables);
     tryReloadTable("estonianTaxFreeRemainderContainer", reloadEstonianTaxFreeRemainderTable);
+    tryReloadTable("portfolioChart", reloadPortfolioChart);
 }
 
 function setStatusMessageFromProcessingOutcome(activityErrorMap, criticalErrorOccurred) {
@@ -154,6 +155,11 @@ function reloadAssetHistoryTables(id) {
 function reloadEstonianTaxFreeRemainderTable(id) {
     const tableData = gPortfolioState.getEstonianTaxFreeRemainderTableView();
     buildEstonianTaxFreeRemainderTable(tableData, id);
+}
+
+function reloadPortfolioChart(id) {
+    const tablesData = gPortfolioState.getAssetHistoryTablesView();
+    buildPortfolioChart(tablesData, id);
 }
 
 function reloadErrorTable(id, msg) {
@@ -1868,6 +1874,12 @@ function openTab(evt, tabName) {
     // Show the selected tab and mark button as active
     document.getElementById(tabName).classList.add("active");
     evt.currentTarget.classList.add("active");
+
+    // ECharts needs an explicit resize once its container becomes visible,
+    // otherwise it renders at 0x0 when initialized on a hidden tab.
+    if (tabName === "portfolio-chart-view" && typeof _portfolioChartInstance !== "undefined" && _portfolioChartInstance) {
+        _portfolioChartInstance.resize();
+    }
 }
 
 // Some thoughts (todos)
